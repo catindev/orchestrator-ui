@@ -1,0 +1,41 @@
+:root {
+  --page-bg: #313133;
+  --surface-subtle: rgba(255, 255, 255, 0.02);
+  --surface-hover: rgba(255, 255, 255, 0.02);
+  --text-strong: #eee9e4;
+  --text-strong-soft: rgba(238, 233, 228, 0.96);
+  --text-medium: rgba(238, 233, 228, 0.8);
+  --text-dim: rgba(238, 233, 228, 0.64);
+  --text-muted: rgba(238, 233, 228, 0.5);
+  --text-faint: rgba(238, 233, 228, 0.42);
+  --border-color: rgba(238, 233, 228, 0.25);
+  --border-strong: rgba(238, 233, 228, 0.45);
+  --accent-color: #c8701a;
+  --status-success-bg: rgba(17, 105, 100, 0.5);
+  --status-error-bg: rgba(158, 40, 9, 0.5);
+  --status-neutral-bg: rgba(138, 139, 142, 0.35);
+  --font-sans:
+    'Helvetica Neue', Helvetica, Arial, 'Arial Nova', 'Nimbus Sans', sans-serif;
+  --font-input: Arial, 'Arial Nova', sans-serif;
+  --font-mono:
+    'SFMono-Regular', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --shell-max-width: 85.375rem;
+  --page-inline-padding: clamp(1.5rem, 4vw, 2rem);
+  --page-block-start: 2.9375rem;
+  --page-block-end: 5rem;
+
+  --space-1: 0.125rem;
+  --space-2: 0.25rem;
+  --space-3: 0.5rem;
+  --space-4: 0.75rem;
+  --space-5: 1rem;
+  --space-6: 1.25rem;
+  --space-7: 1.5rem;
+  --space-8: 2rem;
+
+  --radius-sm: 0.4rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.858rem;
+}
