@@ -37,11 +37,16 @@ export type ProcessStatusTone = 'success' | 'error' | 'neutral'
 export type ProcessListItem = {
   processId: string
   applicationRequestId: string
+  beneficiaryName: string
+  beneficiaryMeta: string
+  requestMeta: string
+  stageLabel: string
+  stageSummary: string
   createdAt: string
   updatedAt: string
-  currentStep: string
   statusLabel: string
   statusTone: ProcessStatusTone
+  searchableText: string
 }
 
 export type ProcessDetails = {

@@ -12,19 +12,29 @@ export function ProcessRow({ process }: ProcessRowProps) {
     <Link
       className="process-row"
       to={`/processes/${process.processId}`}
-      aria-label={`Открыть процесс ${process.processId}`}
+      aria-label={`Открыть заявку ${process.applicationRequestId} для ${process.beneficiaryName}`}
     >
+      <ProcessMeta
+        label="Бенефициар"
+        value={process.beneficiaryName}
+        description={process.beneficiaryMeta}
+      />
       <ProcessMeta
         label="ID заявки"
         value={process.applicationRequestId}
-        className="process-row__meta--id"
+        description={process.requestMeta}
       />
-      <ProcessMeta label="Создана" value={process.createdAt} />
-      <ProcessMeta label="Последнее изменение" value={process.updatedAt} />
       <ProcessMeta
-        label="Текущий шаг"
-        value={process.currentStep}
-        className="process-row__meta--step"
+        label="Текущий этап"
+        value={process.stageLabel}
+        description={process.stageSummary}
+        className="process-row__meta--stage"
+      />
+      <ProcessMeta
+        label="Обновлено"
+        value={process.updatedAt}
+        description={`Создана ${process.createdAt}`}
+        className="process-row__meta--updated"
       />
       <ProcessStatusBadge label={process.statusLabel} tone={process.statusTone} />
     </Link>

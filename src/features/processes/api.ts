@@ -17,6 +17,43 @@ const HUMAN_DATE_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
   hourCycle: 'h23',
 })
 
+type BeneficiaryInput = {
+  type?: string
+  inn?: string
+  participationId?: string
+  contacts?: {
+    email?: string
+    phone?: string
+  }
+  fl?: {
+    firstName?: string
+    middleName?: string
+    lastName?: string
+  }
+  ip?: {
+    firstName?: string
+    middleName?: string
+    lastName?: string
+  }
+  ul?: {
+    fullNameRu?: string
+    shortNameRu?: string
+    fullName?: string
+    shortName?: string
+    name?: string
+  }
+}
+
+type WorkflowResultSummary = {
+  outcome?: string
+  message?: string
+}
+
+type StagePresentation = {
+  label: string
+  summary: string
+}
+
 function isWorkflowResponse(value: unknown): value is WorkflowResponse {
   if (typeof value !== 'object' || value === null) {
     return false
@@ -58,6 +95,181 @@ function formatWorkflowTimestamp(value: string) {
   return `${day} ${month} ${year} в ${hour}:${minute}`
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null
+  }
+
+  return value as Record<string, unknown>
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function pickValidationIssueMessage(workflow: WorkflowResponse): string | null {
+  const checks = asRecord(workflow.context?.checks)
+  const validation = asRecord(checks?.validation)
+  const issues = Array.isArray(validation?.issues) ? validation.issues : []
+
+  for (const issue of issues) {
+    const message = asString(asRecord(issue)?.message)
+
+    if (message) {
+      return message
+    }
+  }
+
+  return null
+}
+
+function pickWorkflowResultSummary(workflow: WorkflowResponse): WorkflowResultSummary {
+  const result = asRecord(workflow.result)
+
+  return {
+    outcome: asString(result?.outcome) ?? undefined,
+    message: asString(result?.message) ?? undefined,
+  }
+}
+
+function mapBeneficiaryTypeLabel(type: string | undefined): string {
+  switch (type) {
+    case 'FL_RESIDENT':
+      return 'Физлицо-резидент'
+    case 'FL_NON_RESIDENT':
+      return 'Физлицо-нерезидент'
+    case 'IP_RESIDENT':
+      return 'ИП-резидент'
+    case 'UL_RESIDENT':
+      return 'Юрлицо-резидент'
+    case 'UL_NON_RESIDENT':
+      return 'Юрлицо-нерезидент'
+    default:
+      return 'Тип не определен'
+  }
+}
+
+function formatPersonName(person: BeneficiaryInput['fl'] | BeneficiaryInput['ip']) {
+  if (!person) {
+    return null
+  }
+
+  const parts = [person.lastName, person.firstName, person.middleName].filter(
+    (part): part is string => Boolean(part && part.trim()),
+  )
+
+  return parts.length > 0 ? parts.join(' ') : null
+}
+
+function formatBeneficiaryName(beneficiary: BeneficiaryInput | null): string {
+  if (!beneficiary) {
+    return 'Бенефициар'
+  }
+
+  const naturalPersonName =
+    formatPersonName(beneficiary.fl) ?? formatPersonName(beneficiary.ip)
+
+  if (naturalPersonName) {
+    return naturalPersonName
+  }
+
+  const legalEntityName =
+    beneficiary.ul?.shortNameRu ??
+    beneficiary.ul?.fullNameRu ??
+    beneficiary.ul?.shortName ??
+    beneficiary.ul?.fullName ??
+    beneficiary.ul?.name
+
+  return legalEntityName && legalEntityName.trim().length > 0
+    ? legalEntityName.trim()
+    : 'Бенефициар без имени'
+}
+
+function mapTerminalStagePresentation(
+  workflow: WorkflowResponse,
+): StagePresentation | null {
+  const { outcome, message } = pickWorkflowResultSummary(workflow)
+  const validationIssueMessage = pickValidationIssueMessage(workflow)
+
+  switch (outcome) {
+    case 'BENEFICIARY_REGISTERED':
+      return {
+        label: 'Регистрация завершена',
+        summary: 'Бенефициар зарегистрирован и привязан к номинальному счету.',
+      }
+    case 'VALIDATION_REJECT':
+      return {
+        label: 'Отклонена проверкой анкеты',
+        summary:
+          validationIssueMessage ??
+          'Анкета не прошла обязательные проверки полноты и ограничений.',
+      }
+    case 'ADDRESS_NOT_VERIFIED':
+      return {
+        label: 'Отклонена проверкой адреса',
+        summary: 'Адрес бенефициара не прошел проверку или не был подтвержден.',
+      }
+    case 'TECHNICAL_FAILURE':
+      return {
+        label: 'Остановлена технической ошибкой',
+        summary:
+          message ??
+          'Во время исполнения процесса произошла техническая ошибка.',
+      }
+    case 'POC_SCENARIO_NOT_SUPPORTED':
+      return {
+        label: 'Сценарий не поддержан',
+        summary:
+          message ??
+          'В текущем PoC поддержан не весь набор сценариев регистрации.',
+      }
+    default:
+      return null
+  }
+}
+
+function mapRootStagePresentation(workflow: WorkflowResponse): StagePresentation {
+  const terminalStage = mapTerminalStagePresentation(workflow)
+
+  if (terminalStage) {
+    return terminalStage
+  }
+
+  switch (workflow.currentStepId) {
+    case 'route_by_supported_scenario':
+    case 'validate_fl_resident_request':
+    case 'derive_validation_facts':
+    case 'choose_validation_outcome':
+    case 'switch_validation_outcome':
+      return {
+        label: 'Проверка анкеты',
+        summary:
+          'Проверяем полноту данных, регуляторные ограничения и причину возможного отклонения.',
+      }
+    case 'validate_registration_address':
+    case 'wait_validate_registration_address':
+    case 'extract_address_validation_result':
+    case 'route_after_address_validation':
+      return {
+        label: 'Проверка адреса',
+        summary:
+          'Проверяем и нормализуем адрес регистрации бенефициара.',
+      }
+    case 'run_abs_ensure_fl_resident_beneficiary':
+    case 'wait_abs_ensure_fl_resident_beneficiary':
+      return {
+        label: 'Регистрация в АБС',
+        summary:
+          'Выполняем поиск, создание и привязку бенефициара в АБС.',
+      }
+    default:
+      return {
+        label: 'Обработка заявки',
+        summary: 'Процесс выполняется и ожидает следующего действия.',
+      }
+  }
+}
+
 function mapStatusPresentation(status: string): {
   label: string
   tone: ProcessStatusTone
@@ -74,15 +286,47 @@ function mapStatusPresentation(status: string): {
 
 function mapWorkflowToListItem(workflow: WorkflowResponse): ProcessListItem {
   const statusPresentation = mapStatusPresentation(workflow.status)
+  const beneficiary =
+    (asRecord(workflow.context?.input?.application)?.beneficiary as BeneficiaryInput | undefined) ??
+    null
+  const stagePresentation = mapRootStagePresentation(workflow)
+  const beneficiaryTypeLabel = mapBeneficiaryTypeLabel(beneficiary?.type)
+  const inn = beneficiary?.inn?.trim()
+  const participationId = beneficiary?.participationId?.trim()
+  const beneficiaryMetaParts = [
+    inn ? `ИНН ${inn}` : null,
+    beneficiaryTypeLabel,
+  ].filter(Boolean)
+  const requestMeta = participationId
+    ? `Participation ID: ${participationId}`
+    : `Process ID: ${workflow.processId}`
+  const searchableText = [
+    workflow.applicationRequestId,
+    workflow.processId,
+    formatBeneficiaryName(beneficiary),
+    beneficiaryTypeLabel,
+    inn,
+    participationId,
+    beneficiary?.contacts?.email,
+    beneficiary?.contacts?.phone,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 
   return {
     processId: workflow.processId,
     applicationRequestId: workflow.applicationRequestId,
+    beneficiaryName: formatBeneficiaryName(beneficiary),
+    beneficiaryMeta: beneficiaryMetaParts.join(' • '),
+    requestMeta,
+    stageLabel: stagePresentation.label,
+    stageSummary: stagePresentation.summary,
     createdAt: formatWorkflowTimestamp(workflow.createdAt),
     updatedAt: formatWorkflowTimestamp(workflow.updatedAt),
-    currentStep: workflow.currentStepType,
     statusLabel: statusPresentation.label,
     statusTone: statusPresentation.tone,
+    searchableText,
   }
 }
 
