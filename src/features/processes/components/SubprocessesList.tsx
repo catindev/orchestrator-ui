@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { SubprocessListItem } from '../types'
+import { ProcessStatusBadge } from './ProcessStatusBadge'
 
 type SubprocessesListProps = {
   parentProcessId: string
@@ -27,42 +28,42 @@ export function SubprocessesList({
           to={`/processes/${parentProcessId}/subprocesses/${subprocess.processId}`}
         >
           <div className="process-tab-list__meta process-tab-list__meta--wide">
-            <span className="process-tab-list__label">ID процесса</span>
-            <span className="process-tab-list__value" title={subprocess.processId}>
-              {subprocess.processId}
+            <span className="process-tab-list__label">Подпроцесс</span>
+            <span className="process-tab-list__value" title={subprocess.title}>
+              {subprocess.title}
+            </span>
+            <span
+              className="process-tab-list__description"
+              title={subprocess.summary}
+            >
+              {subprocess.summary}
             </span>
           </div>
 
           <div className="process-tab-list__meta">
-            <span className="process-tab-list__label">Создан</span>
-            <span className="process-tab-list__value" title={subprocess.createdAt}>
-              {subprocess.createdAt}
+            <span className="process-tab-list__label">Текущий этап</span>
+            <span className="process-tab-list__value" title={subprocess.stageLabel}>
+              {subprocess.stageLabel}
             </span>
           </div>
 
           <div className="process-tab-list__meta">
-            <span className="process-tab-list__label">Последнее изменение</span>
+            <span className="process-tab-list__label">Обновлено</span>
             <span className="process-tab-list__value" title={subprocess.updatedAt}>
               {subprocess.updatedAt}
             </span>
-          </div>
-
-          <div className="process-tab-list__meta">
-            <span className="process-tab-list__label">Текущий шаг</span>
             <span
-              className="process-tab-list__value"
-              title={subprocess.currentStepType}
+              className="process-tab-list__description"
+              title={`Создан ${subprocess.createdAt}`}
             >
-              {subprocess.currentStepType}
+              Создан {subprocess.createdAt}
             </span>
           </div>
 
-          <div className="process-tab-list__meta">
-            <span className="process-tab-list__label">Статус</span>
-            <span className="process-tab-list__value" title={subprocess.status}>
-              {subprocess.status}
-            </span>
-          </div>
+          <ProcessStatusBadge
+            label={subprocess.statusLabel}
+            tone={subprocess.statusTone}
+          />
         </Link>
       ))}
     </div>
