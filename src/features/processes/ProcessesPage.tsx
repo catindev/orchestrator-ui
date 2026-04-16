@@ -12,9 +12,7 @@ export function ProcessesPage() {
 
   const normalizedQuery = query.trim().toLowerCase()
   const visibleProcesses = processes.filter(
-    ({ applicationRequestId, processId }) =>
-      applicationRequestId.toLowerCase().includes(normalizedQuery) ||
-      processId.toLowerCase().includes(normalizedQuery),
+    ({ searchableText }) => searchableText.includes(normalizedQuery),
   )
 
   return (
@@ -24,9 +22,9 @@ export function ProcessesPage() {
         subtitle="Заявки на регистрацию"
       />
       <SearchInput
-        label="Поиск по идентификатору заявки"
+        label="Поиск по заявке, ИНН, participation ID или имени бенефициара"
         name="application-search"
-        placeholder="ID заявки"
+        placeholder="ID заявки, ИНН, ФИО, participation ID"
         value={query}
         onChange={setQuery}
       />

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import './processes-page.css'
 import { ProcessHistoryList } from './components/ProcessHistoryList'
 import { ProcessDetailsOverview } from './components/ProcessDetailsOverview'
+import { ProcessStageTimeline } from './components/ProcessStageTimeline'
 import { SubprocessesList } from './components/SubprocessesList'
 import { useProcessDetails } from './hooks/useProcessDetails'
 import type { ProcessTabId } from './types'
@@ -14,6 +15,7 @@ import { StateCard } from '../../shared/ui/StateCard'
 import { Tabs, type TabOption } from '../../shared/ui/Tabs'
 
 const PROCESS_TABS: TabOption<ProcessTabId>[] = [
+  { id: 'stages', label: 'Ход обработки' },
   { id: 'input', label: 'Входные данные' },
   { id: 'history', label: 'История выполнения' },
   { id: 'context', label: 'Контекст' },
@@ -22,6 +24,7 @@ const PROCESS_TABS: TabOption<ProcessTabId>[] = [
 ]
 
 const SUBPROCESS_TABS: TabOption<ProcessTabId>[] = [
+  { id: 'stages', label: 'Ход выполнения' },
   { id: 'history', label: 'История выполнения' },
   { id: 'context', label: 'Контекст' },
   { id: 'result', label: 'Результат' },
@@ -35,7 +38,7 @@ export function ProcessDetailsPage() {
     () => (isSubprocessRoute ? SUBPROCESS_TABS : PROCESS_TABS),
     [isSubprocessRoute],
   )
-  const defaultTab: ProcessTabId = isSubprocessRoute ? 'history' : 'input'
+  const defaultTab: ProcessTabId = 'stages'
   const routeScope = `${isSubprocessRoute ? 'subprocess' : 'process'}:${targetProcessId ?? 'unknown'}`
   const [tabState, setTabState] = useState<{
     scope: string
@@ -53,7 +56,9 @@ export function ProcessDetailsPage() {
       : defaultTab
 
   const subtitle = process
-    ? `Заявка ${process.applicationRequestId}`
+    ? process.kind === 'subprocess'
+      ? `Подпроцесс ${process.processId}`
+      : `Заявка ${process.applicationRequestId}`
     : targetProcessId
       ? `Процесс ${targetProcessId}`
       : 'Процесс'
@@ -67,6 +72,10 @@ export function ProcessDetailsPage() {
   function renderActiveTabContent() {
     if (!process) {
       return null
+    }
+
+    if (activeTab === 'stages') {
+      return <ProcessStageTimeline process={process} />
     }
 
     if (activeTab === 'input') {

@@ -6,10 +6,10 @@
 .process-row {
   display: grid;
   grid-template-columns:
-    minmax(0, 2.7fr)
-    minmax(10rem, 1.25fr)
-    minmax(11rem, 1.35fr)
-    minmax(7rem, 0.85fr)
+    minmax(0, 2.4fr)
+    minmax(0, 1.8fr)
+    minmax(0, 2.1fr)
+    minmax(11rem, 1.25fr)
     auto;
   column-gap: clamp(0.5rem, 1.5vw, 1rem);
   align-items: center;
@@ -65,6 +65,17 @@
   font-size: 1.143rem;
   line-height: 1.1;
   color: var(--text-strong);
+}
+
+.process-row__description {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.84rem;
+  line-height: 1.3;
+  color: var(--text-medium);
 }
 
 .process-status-badge {
@@ -146,23 +157,37 @@
   color: var(--text-strong-soft);
 }
 
+.process-detail-meta__description,
+.process-tab-list__description {
+  display: block;
+  min-width: 0;
+  /* overflow: hidden;
+  text-overflow: ellipsis; */
+  white-space: nowrap;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  color: var(--text-medium);
+}
+
 .process-detail-summary__primary .process-detail-meta {
   flex: 0 1 auto;
   gap: 0.38rem;
 }
 
 .process-detail-summary__primary .process-detail-meta:first-child {
-  max-inline-size: 26rem;
+  max-inline-size: 21rem;
 }
 
-.process-detail-summary__primary .process-detail-meta:nth-child(2),
+.process-detail-summary__primary .process-detail-meta:nth-child(2) {
+  max-inline-size: 18rem;
+}
+
 .process-detail-summary__primary .process-detail-meta:nth-child(3) {
-  max-inline-size: 11rem;
+  max-inline-size: 8rem;
 }
 
-.process-detail-summary__primary .process-detail-meta:nth-child(4),
-.process-detail-summary__primary .process-detail-meta:nth-child(5) {
-  max-inline-size: 7rem;
+.process-detail-summary__primary .process-detail-meta:nth-child(4) {
+  max-inline-size: 10rem;
 }
 
 .process-detail-summary__primary .process-detail-meta__label {
@@ -171,6 +196,10 @@
 
 .process-detail-summary__primary .process-detail-meta__value {
   font-size: 1.12rem;
+}
+
+.process-detail-summary__primary .process-detail-meta__description {
+  color: var(--text-medium);
 }
 
 .process-detail-meta--compact .process-detail-meta__label {
@@ -182,6 +211,11 @@
   font-size: 0.76rem;
   line-height: 1.2;
   color: var(--text-medium);
+}
+
+.process-detail-meta--compact .process-detail-meta__description {
+  font-size: 0.72rem;
+  color: var(--text-faint);
 }
 
 .process-detail-summary__secondary .process-detail-meta {
@@ -236,11 +270,10 @@
 
 .process-tab-list__row--subprocess {
   grid-template-columns:
-    minmax(0, 2fr)
-    minmax(8rem, 0.95fr)
-    minmax(8rem, 1fr)
-    minmax(5rem, 0.65fr)
-    minmax(5rem, 0.6fr);
+    minmax(0, 2.2fr)
+    minmax(9rem, 1fr)
+    minmax(10rem, 1.05fr)
+    auto;
 }
 
 .process-tab-list__row--link {
@@ -273,9 +306,137 @@
   color: var(--text-medium);
 }
 
+.process-tab-list__description {
+  font-size: 0.72rem;
+}
+
 .process-tab-list__meta--wide,
 .process-tab-list__meta--details {
   min-width: 0;
+}
+
+.process-stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.process-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  padding: 1.2rem 1.3rem;
+  border: 0.0625rem solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.process-stage--completed {
+  border-color: rgba(92, 179, 171, 0.35);
+  background: rgba(17, 105, 100, 0.08);
+}
+
+.process-stage--active {
+  border-color: rgba(226, 163, 74, 0.35);
+  background: rgba(226, 163, 74, 0.08);
+}
+
+.process-stage--error {
+  border-color: rgba(180, 84, 51, 0.4);
+  background: rgba(158, 40, 9, 0.12);
+}
+
+.process-stage--pending,
+.process-stage--skipped {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.process-stage__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.process-stage__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.process-stage__eyebrow,
+.process-stage__time-label {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: var(--text-faint);
+}
+
+.process-stage__title {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.15;
+  color: var(--text-strong);
+}
+
+.process-stage__state {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.74rem;
+  line-height: 1;
+  color: var(--text-strong-soft);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.process-stage--completed .process-stage__state {
+  background: rgba(92, 179, 171, 0.18);
+}
+
+.process-stage--active .process-stage__state {
+  background: rgba(226, 163, 74, 0.18);
+}
+
+.process-stage--error .process-stage__state {
+  background: rgba(180, 84, 51, 0.24);
+}
+
+.process-stage__summary {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.4;
+  color: var(--text-strong-soft);
+}
+
+.process-stage__details {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--text-medium);
+}
+
+.process-stage__detail {
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.process-stage__timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+}
+
+.process-stage__time {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.process-stage__time-value {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--text-medium);
 }
 
 @media (max-width: 40rem) {
@@ -292,16 +453,23 @@
 
   .process-row__label,
   .process-row__value,
+  .process-row__description,
   .process-detail-meta__label,
   .process-detail-meta__value,
+  .process-detail-meta__description,
   .process-tab-list__label,
-  .process-tab-list__value {
+  .process-tab-list__value,
+  .process-tab-list__description {
     white-space: normal;
     text-overflow: clip;
   }
 
   .process-row__meta--step {
     grid-column: 1 / 2;
+  }
+
+  .process-row__meta--stage {
+    grid-column: 1 / -1;
   }
 
   .process-status-badge {
@@ -314,5 +482,9 @@
   .process-tab-list__row--subprocess {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
+  }
+
+  .process-stage__header {
+    flex-direction: column;
   }
 }

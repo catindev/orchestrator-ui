@@ -30,14 +30,14 @@ export function ProcessHistoryList({ history }: ProcessHistoryListProps) {
           <div className="process-tab-list__meta">
             <span className="process-tab-list__label">Событие</span>
             <span className="process-tab-list__value" title={item.kind}>
-              {item.kind}
+              {item.kindLabel}
             </span>
           </div>
 
           <div className="process-tab-list__meta">
             <span className="process-tab-list__label">Шаг</span>
             <span className="process-tab-list__value" title={item.stepId}>
-              {item.stepId}
+              {item.stepLabel}
             </span>
           </div>
 
