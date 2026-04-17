@@ -1,139 +1,137 @@
-import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import './processes-page.css'
-import { ProcessHistoryList } from './components/ProcessHistoryList'
-import { ProcessDetailsOverview } from './components/ProcessDetailsOverview'
-import { ProcessStageTimeline } from './components/ProcessStageTimeline'
-import { SubprocessesList } from './components/SubprocessesList'
-import { useProcessDetails } from './hooks/useProcessDetails'
-import type { ProcessTabId } from './types'
-import { BackLink } from '../../shared/ui/BackLink'
-import { JsonPanel } from '../../shared/ui/JsonPanel'
-import { PageHeader } from '../../shared/ui/PageHeader'
-import { PageLayout } from '../../shared/ui/PageLayout'
-import { StateCard } from '../../shared/ui/StateCard'
-import { Tabs, type TabOption } from '../../shared/ui/Tabs'
+import { useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+import "./processes-page.css";
+import { ProcessHistoryList } from "./components/ProcessHistoryList";
+import { ProcessDetailsOverview } from "./components/ProcessDetailsOverview";
+import { ProcessStageTimeline } from "./components/ProcessStageTimeline";
+import { SubprocessesList } from "./components/SubprocessesList";
+import { useProcessDetails } from "./hooks/useProcessDetails";
+import type { ProcessTabId } from "./types";
+import { BackLink } from "../../shared/ui/BackLink";
+import { JsonPanel } from "../../shared/ui/JsonPanel";
+import { PageHeader } from "../../shared/ui/PageHeader";
+import { PageLayout } from "../../shared/ui/PageLayout";
+import { StateCard } from "../../shared/ui/StateCard";
+import { Tabs, type TabOption } from "../../shared/ui/Tabs";
 
 const PROCESS_TABS: TabOption<ProcessTabId>[] = [
-  { id: 'stages', label: 'Ход обработки' },
-  { id: 'input', label: 'Входные данные' },
-  { id: 'history', label: 'История выполнения' },
-  { id: 'context', label: 'Контекст' },
-  { id: 'subprocesses', label: 'Подпроцессы' },
-  { id: 'result', label: 'Результат' },
-]
+  { id: "stages", label: "Этапы обработки заявки" },
+  { id: "input", label: "Входные данные" },
+  // { id: "history", label: "История выполнения" },
+  { id: "context", label: "Контекст бизнес-процесса" },
+  { id: "subprocesses", label: "Подпроцессы" },
+  { id: "result", label: "Результат" },
+];
 
 const SUBPROCESS_TABS: TabOption<ProcessTabId>[] = [
-  { id: 'stages', label: 'Ход выполнения' },
-  { id: 'history', label: 'История выполнения' },
-  { id: 'context', label: 'Контекст' },
-  { id: 'result', label: 'Результат' },
-]
+  { id: "stages", label: "Этапы подпроцесса" },
+  // { id: "history", label: "История выполнения" },
+  { id: "context", label: "Контекст выполнения подпроцесса" },
+  { id: "result", label: "Результат" },
+];
 
 export function ProcessDetailsPage() {
-  const { processId, parentProcessId, subprocessId } = useParams()
-  const targetProcessId = subprocessId ?? processId
-  const isSubprocessRoute = Boolean(subprocessId)
+  const { processId, parentProcessId, subprocessId } = useParams();
+  const targetProcessId = subprocessId ?? processId;
+  const isSubprocessRoute = Boolean(subprocessId);
   const tabs = useMemo(
     () => (isSubprocessRoute ? SUBPROCESS_TABS : PROCESS_TABS),
     [isSubprocessRoute],
-  )
-  const defaultTab: ProcessTabId = 'stages'
-  const routeScope = `${isSubprocessRoute ? 'subprocess' : 'process'}:${targetProcessId ?? 'unknown'}`
+  );
+  const defaultTab: ProcessTabId = "stages";
+  const routeScope = `${isSubprocessRoute ? "subprocess" : "process"}:${targetProcessId ?? "unknown"}`;
   const [tabState, setTabState] = useState<{
-    scope: string
-    tab: ProcessTabId
+    scope: string;
+    tab: ProcessTabId;
   }>({
     scope: routeScope,
     tab: defaultTab,
-  })
+  });
   const { process, isLoading, errorMessage, refetch } =
-    useProcessDetails(targetProcessId)
+    useProcessDetails(targetProcessId);
   const activeTab =
-    tabState.scope === routeScope &&
-    tabs.some((tab) => tab.id === tabState.tab)
+    tabState.scope === routeScope && tabs.some((tab) => tab.id === tabState.tab)
       ? tabState.tab
-      : defaultTab
+      : defaultTab;
 
   const subtitle = process
-    ? process.kind === 'subprocess'
+    ? process.kind === "subprocess"
       ? `Подпроцесс ${process.processId}`
       : `Заявка ${process.applicationRequestId}`
     : targetProcessId
       ? `Процесс ${targetProcessId}`
-      : 'Процесс'
+      : "Процесс";
 
-  const resolvedParentProcessId = process?.parentProcessId ?? parentProcessId ?? null
+  const resolvedParentProcessId =
+    process?.parentProcessId ?? parentProcessId ?? null;
   const backLinkTarget = resolvedParentProcessId
     ? `/processes/${resolvedParentProcessId}`
-    : '/'
-  const backLinkLabel = resolvedParentProcessId ? '< К процессу' : '< Все заявки'
+    : "/";
+  const backLinkLabel = resolvedParentProcessId
+    ? "< К процессу"
+    : "< Все заявки";
 
   function renderActiveTabContent() {
     if (!process) {
-      return null
+      return null;
     }
 
-    if (activeTab === 'stages') {
-      return <ProcessStageTimeline process={process} />
+    if (activeTab === "stages") {
+      return <ProcessStageTimeline process={process} />;
     }
 
-    if (activeTab === 'input') {
+    if (activeTab === "input") {
       return (
         <JsonPanel
           value={process.inputApplication}
           emptyMessage="У процесса нет входных данных в context.input.application."
         />
-      )
+      );
     }
 
-    if (activeTab === 'history') {
-      return <ProcessHistoryList history={process.history} />
+    if (activeTab === "history") {
+      return <ProcessHistoryList history={process.history} />;
     }
 
-    if (activeTab === 'context') {
+    if (activeTab === "context") {
       return (
         <JsonPanel
           value={process.contextSummary}
           emptyMessage="У процесса нет данных в context.facts/checks/effects/decisions."
         />
-      )
+      );
     }
 
-    if (activeTab === 'subprocesses') {
+    if (activeTab === "subprocesses") {
       return (
         <SubprocessesList
           parentProcessId={process.processId}
           subprocesses={process.subprocesses}
         />
-      )
+      );
     }
 
-    if (activeTab === 'result') {
+    if (activeTab === "result") {
       return (
         <JsonPanel
           value={process.resultData}
           emptyMessage="У процесса нет данных в поле result."
         />
-      )
+      );
     }
 
     return (
       <p className="app-empty-text">
         Контент вкладки появится, когда дособерем макет этой секции.
       </p>
-    )
+    );
   }
 
   return (
     <PageLayout>
       <BackLink to={backLinkTarget} label={backLinkLabel} />
 
-      <PageHeader
-        title="Бенефициары ном. счетов"
-        subtitle={subtitle}
-        detail
-      />
+      <PageHeader title="Бенефициары ном. счетов" subtitle={subtitle} detail />
 
       {isLoading ? (
         <StateCard
@@ -168,5 +166,5 @@ export function ProcessDetailsPage() {
         />
       )}
     </PageLayout>
-  )
+  );
 }

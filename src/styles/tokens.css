@@ -1,29 +1,66 @@
 :root {
-  --page-bg: #313133;
-  --surface-subtle: rgba(255, 255, 255, 0.02);
-  --surface-hover: rgba(255, 255, 255, 0.02);
-  --text-strong: #eee9e4;
-  --text-strong-soft: rgba(238, 233, 228, 0.96);
-  --text-medium: rgba(238, 233, 228, 0.8);
-  --text-dim: rgba(238, 233, 228, 0.64);
-  --text-muted: rgba(238, 233, 228, 0.5);
-  --text-faint: rgba(238, 233, 228, 0.42);
-  --border-color: rgba(238, 233, 228, 0.25);
-  --border-strong: rgba(238, 233, 228, 0.45);
-  --accent-color: #c8701a;
-  --status-success-bg: rgba(17, 105, 100, 0.5);
-  --status-error-bg: rgba(158, 40, 9, 0.5);
-  --status-neutral-bg: rgba(138, 139, 142, 0.35);
-  --font-sans:
-    'Helvetica Neue', Helvetica, Arial, 'Arial Nova', 'Nimbus Sans', sans-serif;
-  --font-input: Arial, 'Arial Nova', sans-serif;
-  --font-mono:
-    'SFMono-Regular', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --page-bg: #f5f3ee;
+  --page-glow:
+    radial-gradient(circle at top left, rgba(79, 70, 229, 0.08), transparent 28rem),
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.08), transparent 24rem);
 
-  --shell-max-width: 85.375rem;
-  --page-inline-padding: clamp(1.5rem, 4vw, 2rem);
-  --page-block-start: 2.9375rem;
-  --page-block-end: 5rem;
+  --surface-canvas: rgba(255, 255, 255, 0.52);
+  --surface-card: #ffffff;
+  --surface-subtle: #faf7f1;
+  --surface-muted: #f3efe7;
+  --surface-hover: #fffdf9;
+
+  --text-strong: #1a1a2e;
+  --text-strong-soft: #23233a;
+  --text-medium: #4b5563;
+  --text-dim: #6b7280;
+  --text-muted: #8b95a7;
+  --text-faint: #a2aaba;
+
+  --border-color: #e8e5df;
+  --border-strong: #d8d2c8;
+  --accent-color: #4f46e5;
+  --accent-soft: #eef2ff;
+  --accent-strong: #3730a3;
+
+  --status-success-bg: #f0fdf4;
+  --status-success-border: #bbf7d0;
+  --status-success-text: #166534;
+  --status-error-bg: #fff1f2;
+  --status-error-border: #fecdd3;
+  --status-error-text: #be123c;
+  --status-neutral-bg: #f1f5f9;
+  --status-neutral-border: #cbd5e1;
+  --status-neutral-text: #334155;
+
+  --stage-success-bg: #f0fdf4;
+  --stage-success-border: #bbf7d0;
+  --stage-success-accent: #16a34a;
+  --stage-active-bg: #fffbeb;
+  --stage-active-border: #fde68a;
+  --stage-active-accent: #d97706;
+  --stage-error-bg: #fff1f2;
+  --stage-error-border: #fecdd3;
+  --stage-error-accent: #e11d48;
+  --stage-pending-bg: #f8fafc;
+  --stage-pending-border: #e2e8f0;
+  --stage-pending-accent: #94a3b8;
+
+  --font-sans:
+    Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-input: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:
+    'JetBrains Mono', 'SFMono-Regular', 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    monospace;
+
+  --shadow-sm: 0 2px 8px rgba(26, 26, 46, 0.06);
+  --shadow-md: 0 4px 20px rgba(26, 26, 46, 0.09);
+  --shadow-lg: 0 8px 32px rgba(26, 26, 46, 0.12);
+
+  --shell-max-width: 88rem;
+  --page-inline-padding: clamp(1.25rem, 3vw, 2rem);
+  --page-block-start: clamp(1.25rem, 3vw, 2rem);
+  --page-block-end: clamp(2rem, 4vw, 3rem);
 
   --space-1: 0.125rem;
   --space-2: 0.25rem;
@@ -33,9 +70,10 @@
   --space-6: 1.25rem;
   --space-7: 1.5rem;
   --space-8: 2rem;
+  --space-9: 2.5rem;
 
-  --radius-sm: 0.4rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 0.858rem;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
 }

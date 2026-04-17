@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchProcessDetails } from '../api'
 import type { ProcessDetails } from '../types'
+import { useOrchestratorServer } from '../../../shared/lib/use-orchestrator-server'
 
 type UseProcessDetailsResult = {
   process: ProcessDetails | null
@@ -12,6 +13,7 @@ type UseProcessDetailsResult = {
 export function useProcessDetails(
   processId: string | undefined,
 ): UseProcessDetailsResult {
+  const { serverUrl } = useOrchestratorServer()
   const [process, setProcess] = useState<ProcessDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -34,6 +36,7 @@ export function useProcessDetails(
         setErrorMessage(null)
 
         const nextProcess = await fetchProcessDetails(
+          serverUrl,
           targetProcessId,
           abortController.signal,
         )
@@ -61,7 +64,7 @@ export function useProcessDetails(
     return () => {
       abortController.abort()
     }
-  }, [processId, requestVersion])
+  }, [processId, requestVersion, serverUrl])
 
   return {
     process,

@@ -3,14 +3,18 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiBaseUrl = env.BASE_URL || 'http://localhost:8080'
+  const orchestratorBaseUrl =
+    env.ORCHESTRATOR_BASE_URL || 'http://localhost:8080'
 
   return {
     plugins: [react()],
+    define: {
+      __ORCHESTRATOR_BASE_URL__: JSON.stringify(orchestratorBaseUrl),
+    },
     server: {
       proxy: {
         '/api': {
-          target: apiBaseUrl,
+          target: orchestratorBaseUrl,
           changeOrigin: true,
         },
       },
