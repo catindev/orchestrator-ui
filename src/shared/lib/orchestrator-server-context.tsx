@@ -1,5 +1,8 @@
-import { useMemo, useState, type ReactNode } from 'react'
-import { getDefaultOrchestratorServerUrl } from './orchestrator-server'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  getInitialOrchestratorServerUrl,
+  persistOrchestratorServerUrl,
+} from './orchestrator-server'
 import { OrchestratorServerContext } from './orchestrator-server-store'
 
 type OrchestratorServerProviderProps = {
@@ -9,7 +12,12 @@ type OrchestratorServerProviderProps = {
 export function OrchestratorServerProvider({
   children,
 }: OrchestratorServerProviderProps) {
-  const [serverUrl, setServerUrl] = useState(getDefaultOrchestratorServerUrl)
+  const [serverUrl, setServerUrl] = useState(getInitialOrchestratorServerUrl)
+
+  useEffect(() => {
+    persistOrchestratorServerUrl(serverUrl)
+  }, [serverUrl])
+
   const value = useMemo(
     () => ({ serverUrl, setServerUrl }),
     [serverUrl],

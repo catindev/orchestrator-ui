@@ -279,7 +279,10 @@ function pickWorkflowResultSummary(
 
   return {
     outcome: asString(result?.outcome) ?? undefined,
-    message: asString(result?.message) ?? undefined,
+    message:
+      asString(result?.merchantMessage) ??
+      asString(result?.message) ??
+      undefined,
   };
 }
 
@@ -376,6 +379,14 @@ function mapTerminalStagePresentation(
         summary:
           validationIssueMessage ??
           "Анкета не прошла обязательные проверки полноты и ограничений.",
+      };
+    case "COMPLIANCE_REJECT":
+      return {
+        label: "Заявка отклонена по регуляторной причине",
+        summary:
+          validationIssueMessage ??
+          message ??
+          "Заявка отклонена по регуляторной причине.",
       };
     case "ADDRESS_NOT_VERIFIED":
       return {
@@ -751,6 +762,18 @@ function getValidationStage(
     );
   }
 
+  if (outcome === "COMPLIANCE_REJECT") {
+    return buildStage(
+      "validation",
+      "Проверка анкеты",
+      "error",
+      validationRejectSummary ??
+        "Заявка отклонена по регуляторной причине.",
+      details,
+      timing,
+    );
+  }
+
   if (outcome === "POC_SCENARIO_NOT_SUPPORTED") {
     return buildStage(
       "validation",
@@ -841,6 +864,7 @@ function getAddressStage(
 
   if (
     outcome === "VALIDATION_REJECT" ||
+    outcome === "COMPLIANCE_REJECT" ||
     outcome === "POC_SCENARIO_NOT_SUPPORTED"
   ) {
     return buildStage(
@@ -1000,6 +1024,7 @@ function getAbsStage(
 
   if (
     outcome === "VALIDATION_REJECT" ||
+    outcome === "COMPLIANCE_REJECT" ||
     outcome === "POC_SCENARIO_NOT_SUPPORTED" ||
     outcome === "ADDRESS_NOT_VERIFIED"
   ) {
