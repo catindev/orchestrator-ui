@@ -1,22 +1,18 @@
-import { Link } from 'react-router-dom'
-import type { SubprocessListItem } from '../types'
-import { ProcessStatusBadge } from './ProcessStatusBadge'
+import { Link } from "react-router-dom";
+import type { SubprocessListItem } from "../types";
+import { ProcessStatusBadge } from "./ProcessStatusBadge";
 
 type SubprocessesListProps = {
-  parentProcessId: string
-  subprocesses: SubprocessListItem[]
-}
+  parentProcessId: string;
+  subprocesses: SubprocessListItem[];
+};
 
 export function SubprocessesList({
   parentProcessId,
   subprocesses,
 }: SubprocessesListProps) {
   if (subprocesses.length === 0) {
-    return (
-      <p className="app-empty-text">
-        У этого процесса пока нет подпроцессов.
-      </p>
-    )
+    return <p className="app-empty-text">Подпроцессов нет </p>;
   }
 
   return (
@@ -42,14 +38,20 @@ export function SubprocessesList({
 
           <div className="process-tab-list__meta">
             <span className="process-tab-list__label">Текущий этап</span>
-            <span className="process-tab-list__value" title={subprocess.stageLabel}>
+            <span
+              className="process-tab-list__value"
+              title={subprocess.stageLabel}
+            >
               {subprocess.stageLabel}
             </span>
           </div>
 
           <div className="process-tab-list__meta">
             <span className="process-tab-list__label">Обновлено</span>
-            <span className="process-tab-list__value" title={subprocess.updatedAt}>
+            <span
+              className="process-tab-list__value"
+              title={subprocess.updatedAt}
+            >
               {subprocess.updatedAt}
             </span>
             <span
@@ -67,5 +69,5 @@ export function SubprocessesList({
         </Link>
       ))}
     </div>
-  )
+  );
 }

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { cn } from '../lib/cn'
+import { AppToolbar } from './AppToolbar'
 
 type PageLayoutProps = {
   children: ReactNode
@@ -16,9 +17,15 @@ export function PageLayout({
 }: PageLayoutProps) {
   return (
     <main className={cn('app-page', className)}>
-      <section className={cn('app-shell', shellClassName)} aria-labelledby={labelledBy}>
-        {children}
-      </section>
+      <div className="app-shell-frame">
+        <AppToolbar />
+        <section
+          className={cn('app-shell', shellClassName)}
+          aria-labelledby={labelledBy}
+        >
+          {children}
+        </section>
+      </div>
     </main>
   )
 }

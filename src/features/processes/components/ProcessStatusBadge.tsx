@@ -24,12 +24,12 @@ export function ProcessStatusBadge({
       <span className="process-row__label">Статус</span>
       <span className="process-status-badge__track">
         <span
-          className="process-row__value process-status-badge__measure"
+          className="process-status-badge__pill process-status-badge__measure"
           aria-hidden="true"
         >
           {LONGEST_PROCESS_STATUS_LABEL}
         </span>
-        <span className="process-row__value process-status-badge__value">
+        <span className="process-status-badge__pill process-status-badge__value">
           {label}
         </span>
       </span>

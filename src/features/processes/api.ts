@@ -4,11 +4,13 @@ import {
   mapWorkflowToDetails,
   mapWorkflowToListItem,
 } from './lib/process-view-model'
+import { getWorkflowsEndpoint } from '../../shared/lib/orchestrator-server'
 
-const WORKFLOWS_ENDPOINT = '/api/v1/workflows'
-
-async function fetchWorkflows(signal?: AbortSignal): Promise<WorkflowResponse[]> {
-  const response = await fetch(WORKFLOWS_ENDPOINT, { signal })
+async function fetchWorkflows(
+  serverUrl: string,
+  signal?: AbortSignal,
+): Promise<WorkflowResponse[]> {
+  const response = await fetch(getWorkflowsEndpoint(serverUrl), { signal })
 
   if (!response.ok) {
     throw new Error(`Не удалось загрузить процессы: ${response.status}`)
@@ -24,9 +26,10 @@ async function fetchWorkflows(signal?: AbortSignal): Promise<WorkflowResponse[]>
 }
 
 export async function fetchRootProcesses(
+  serverUrl: string,
   signal?: AbortSignal,
 ): Promise<ProcessListItem[]> {
-  const workflows = await fetchWorkflows(signal)
+  const workflows = await fetchWorkflows(serverUrl, signal)
 
   return workflows
     .filter((workflow) => workflow.parentProcessId == null)
@@ -34,10 +37,11 @@ export async function fetchRootProcesses(
 }
 
 export async function fetchProcessDetails(
+  serverUrl: string,
   processId: string,
   signal?: AbortSignal,
 ): Promise<ProcessDetails> {
-  const workflows = await fetchWorkflows(signal)
+  const workflows = await fetchWorkflows(serverUrl, signal)
   const process = workflows.find((workflow) => workflow.processId === processId)
 
   if (!process) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchProcessDetails } from '../api'
 import type { ProcessDetails } from '../types'
+import { useOrchestratorServer } from '../../../shared/lib/use-orchestrator-server'
 
 type UseProcessDetailsResult = {
   process: ProcessDetails | null
@@ -12,16 +13,15 @@ type UseProcessDetailsResult = {
 export function useProcessDetails(
   processId: string | undefined,
 ): UseProcessDetailsResult {
+  const { serverUrl } = useOrchestratorServer()
+  const hasProcessId = Boolean(processId)
   const [process, setProcess] = useState<ProcessDetails | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(hasProcessId)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [requestVersion, setRequestVersion] = useState(0)
 
   useEffect(() => {
     if (!processId) {
-      setProcess(null)
-      setIsLoading(false)
-      setErrorMessage('Не передан идентификатор процесса')
       return
     }
 
@@ -34,6 +34,7 @@ export function useProcessDetails(
         setErrorMessage(null)
 
         const nextProcess = await fetchProcessDetails(
+          serverUrl,
           targetProcessId,
           abortController.signal,
         )
@@ -61,7 +62,18 @@ export function useProcessDetails(
     return () => {
       abortController.abort()
     }
-  }, [processId, requestVersion])
+  }, [processId, requestVersion, serverUrl])
+
+  if (!hasProcessId) {
+    return {
+      process: null,
+      isLoading: false,
+      errorMessage: 'Не передан идентификатор процесса',
+      refetch: () => {
+        setRequestVersion((version) => version + 1)
+      },
+    }
+  }
 
   return {
     process,

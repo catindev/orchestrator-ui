@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchRootProcesses } from '../api'
 import type { ProcessListItem } from '../types'
+import { useOrchestratorServer } from '../../../shared/lib/use-orchestrator-server'
 
 type UseRootProcessesResult = {
   processes: ProcessListItem[]
@@ -10,6 +11,7 @@ type UseRootProcessesResult = {
 }
 
 export function useRootProcesses(): UseRootProcessesResult {
+  const { serverUrl } = useOrchestratorServer()
   const [processes, setProcesses] = useState<ProcessListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -23,7 +25,10 @@ export function useRootProcesses(): UseRootProcessesResult {
         setIsLoading(true)
         setErrorMessage(null)
 
-        const nextProcesses = await fetchRootProcesses(abortController.signal)
+        const nextProcesses = await fetchRootProcesses(
+          serverUrl,
+          abortController.signal,
+        )
         setProcesses(nextProcesses)
       } catch (error) {
         if (abortController.signal.aborted) {
@@ -48,7 +53,7 @@ export function useRootProcesses(): UseRootProcessesResult {
     return () => {
       abortController.abort()
     }
-  }, [requestVersion])
+  }, [requestVersion, serverUrl])
 
   return {
     processes,
