@@ -83,6 +83,7 @@ export type ProcessDetails = {
   resultData: unknown | null
   history: ProcessHistoryItem[]
   subprocesses: SubprocessListItem[]
+  subflowHandoff: ProcessSubflowHandoff | null
   stages: ProcessStageItem[]
 }
 
@@ -121,6 +122,44 @@ export type ProcessOverviewItem = {
   compact?: boolean
 }
 
+export type StepKind =
+  | 'prepare'
+  | 'send'
+  | 'wait'
+  | 'extract'
+  | 'decision'
+  | 'finish'
+
+export type StepEvidencePanel = {
+  title: string
+  data: unknown
+}
+
+export type StepEvidencePanels = Partial<{
+  request: StepEvidencePanel
+  response: StepEvidencePanel
+  facts: StepEvidencePanel
+  decision: StepEvidencePanel
+  meta: StepEvidencePanel
+}>
+
+export type StepEvidenceItem = {
+  stepId: string
+  title: string
+  kind: StepKind
+  status: string | null
+  summary: string | null
+  error: string | null
+  startedAt: string | null
+  finishedAt: string | null
+  panels: StepEvidencePanels
+}
+
+export type ProcessSubflowHandoff = {
+  parentInput: unknown
+  childInput: unknown
+}
+
 export type ProcessStageItem = {
   id: string
   title: string
@@ -130,6 +169,7 @@ export type ProcessStageItem = {
   details: string[]
   startedAt: string | null
   finishedAt: string | null
+  steps: StepEvidenceItem[]
 }
 
 export const PROCESS_STATUS_LABELS = [

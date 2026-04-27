@@ -1,5 +1,6 @@
 import { cn } from '../../../shared/lib/cn'
 import type { ProcessDetails, ProcessStageItem } from '../types'
+import { StepEvidenceAccordion } from './process-detail/StepEvidenceAccordion'
 
 type ProcessStageTimelineProps = {
   process: ProcessDetails
@@ -49,6 +50,8 @@ export function ProcessStageTimeline({ process }: ProcessStageTimelineProps) {
               ))}
             </ul>
           ) : null}
+
+          <StepEvidenceAccordion items={stage.steps} />
 
           {stage.startedAt || stage.finishedAt ? (
             <div className="process-stage__timeline">

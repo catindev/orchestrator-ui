@@ -6,10 +6,26 @@ import type {
   ProcessStageItem,
   ProcessStageState,
   ProcessStatusTone,
+  StepEvidenceItem,
+  StepKind,
   SubprocessListItem,
   WorkflowContextStepState,
   WorkflowResponse,
 } from "../types";
+import {
+  HISTORY_KIND_LABELS,
+  ROOT_ABS_STEPS,
+  ROOT_ADDRESS_STEPS,
+  ROOT_RESULT_STEPS,
+  ROOT_VALIDATION_STEPS,
+  STEP_LABELS,
+  SUBPROCESS_BIND_STEPS,
+  SUBPROCESS_CREATE_STEPS,
+  SUBPROCESS_FIND_STEPS,
+  SUBPROCESS_RESULT_STEPS,
+  TECHNICAL_FAILURE_STEP_PRESENTATIONS,
+} from "./flow-registry";
+import { getStepEvidencePanels } from "./step-evidence-registry";
 
 const HUMAN_DATE_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric",
@@ -24,6 +40,10 @@ type BeneficiaryInput = {
   type?: string;
   inn?: string;
   participationId?: string;
+  account?: {
+    number?: string;
+    accountNumber?: string;
+  };
   contacts?: {
     email?: string;
     phone?: string;
@@ -67,50 +87,6 @@ type EffectResult = {
   result: Record<string, unknown> | null;
 };
 
-const ROOT_VALIDATION_STEPS = [
-  "route_by_supported_scenario",
-  "validate_fl_resident_request",
-  "derive_validation_facts",
-  "choose_validation_outcome",
-  "switch_validation_outcome",
-  "finish_reject_validation",
-  "finish_fail_poc_scenario_not_supported",
-] as const;
-
-const ROOT_ADDRESS_STEPS = [
-  "validate_registration_address",
-  "wait_validate_registration_address",
-  "extract_address_validation_result",
-  "route_after_address_validation",
-  "finish_reject_address",
-] as const;
-
-const ROOT_ABS_STEPS = [
-  "run_abs_ensure_fl_resident_beneficiary",
-  "wait_abs_ensure_fl_resident_beneficiary",
-] as const;
-
-const ROOT_RESULT_STEPS = [
-  "finish_success",
-  "finish_reject_validation",
-  "finish_reject_address",
-  "finish_fail_poc_scenario_not_supported",
-  "finish_fail_technical",
-] as const;
-
-const SUBPROCESS_FIND_STEPS = [
-  "send_find_client",
-  "wait_find_client",
-  "choose_find_client_scenario",
-  "switch_find_client_scenario",
-] as const;
-
-const SUBPROCESS_CREATE_STEPS = ["send_create_client", "wait_create_client"];
-
-const SUBPROCESS_BIND_STEPS = ["send_bind_client", "wait_bind_client"];
-
-const SUBPROCESS_RESULT_STEPS = ["finish_success", "finish_fail"] as const;
-
 const STAGE_STATE_LABELS: Record<ProcessStageState, string> = {
   completed: "Завершен",
   active: "В работе",
@@ -119,41 +95,6 @@ const STAGE_STATE_LABELS: Record<ProcessStageState, string> = {
   skipped: "Пропущен",
 };
 
-const HISTORY_KIND_LABELS: Record<string, string> = {
-  STEP_COMPLETED: "Шаг завершен",
-  STEP_WAITING: "Ожидание ответа",
-  STEP_RESUMED: "Шаг возобновлен",
-  STEP_FAILED: "Шаг завершился ошибкой",
-};
-
-const STEP_LABELS: Record<string, string> = {
-  route_by_supported_scenario: "Определение сценария",
-  validate_fl_resident_request: "Первичная валидация заявки",
-  derive_validation_facts: "Сбор фактов проверки",
-  choose_validation_outcome: "Определение результата валидации",
-  switch_validation_outcome: "Переход по результату валидации",
-  finish_reject_validation: "Завершение с отказом по валидации",
-  finish_fail_poc_scenario_not_supported:
-    "Завершение из-за неподдержанного сценария",
-  validate_registration_address: "Запуск проверки адреса",
-  wait_validate_registration_address: "Ожидание проверки адреса",
-  extract_address_validation_result: "Разбор результата проверки адреса",
-  route_after_address_validation: "Переход после проверки адреса",
-  finish_reject_address: "Завершение с отказом по адресу",
-  run_abs_ensure_fl_resident_beneficiary: "Запуск регистрации в АБС",
-  wait_abs_ensure_fl_resident_beneficiary: "Ожидание результата АБС",
-  finish_success: "Успешное завершение",
-  finish_fail_technical: "Завершение с технической ошибкой",
-  send_find_client: "Поиск клиента в АБС",
-  wait_find_client: "Ожидание ответа поиска клиента",
-  choose_find_client_scenario: "Выбор сценария после поиска",
-  switch_find_client_scenario: "Переход по сценарию поиска",
-  send_create_client: "Создание клиента в АБС",
-  wait_create_client: "Ожидание создания клиента",
-  send_bind_client: "Привязка клиента",
-  wait_bind_client: "Ожидание привязки клиента",
-  finish_fail: "Завершение подпроцесса с ошибкой",
-};
 
 export function isWorkflowResponse(value: unknown): value is WorkflowResponse {
   if (typeof value !== "object" || value === null) {
@@ -233,6 +174,10 @@ function getStepMap(workflow: WorkflowResponse): StepMap {
 
 function getStepLabel(stepId: string): string {
   return STEP_LABELS[stepId] ?? stepId;
+}
+
+function hasStep(stepIds: readonly string[], stepId: string) {
+  return stepIds.some((candidateStepId) => candidateStepId === stepId);
 }
 
 function getHistoryKindLabel(kind: string): string {
@@ -341,11 +286,23 @@ function formatBeneficiaryName(beneficiary: BeneficiaryInput | null): string {
     : "Бенефициар без имени";
 }
 
+function getAccountNumber(beneficiary: BeneficiaryInput | null): string | null {
+  return (
+    asString(beneficiary?.account?.number) ??
+    asString(beneficiary?.account?.accountNumber)
+  );
+}
+
 function formatBeneficiaryMeta(beneficiary: BeneficiaryInput | null): string {
   const beneficiaryTypeLabel = mapBeneficiaryTypeLabel(beneficiary?.type);
   const inn = beneficiary?.inn?.trim();
+  const accountNumber = getAccountNumber(beneficiary);
 
-  return [inn ? `ИНН ${inn}` : null, beneficiaryTypeLabel]
+  return [
+    inn ? `ИНН ${inn}` : null,
+    beneficiaryTypeLabel,
+    accountNumber ? `Счет ${accountNumber}` : null,
+  ]
     .filter(Boolean)
     .join(" • ");
 }
@@ -394,6 +351,18 @@ function mapTerminalStagePresentation(
         summary: "Адрес бенефициара не прошел проверку или не был подтвержден.",
       };
     case "TECHNICAL_FAILURE":
+      // presentation depends on currentStepId at failure time, not on outcome variant
+      if (TECHNICAL_FAILURE_STEP_PRESENTATIONS[workflow.currentStepId]) {
+        return {
+          label: TECHNICAL_FAILURE_STEP_PRESENTATIONS[workflow.currentStepId]
+            .label,
+          summary:
+            message ??
+            TECHNICAL_FAILURE_STEP_PRESENTATIONS[workflow.currentStepId]
+              .summary,
+        };
+      }
+
       return {
         label: "Остановлена технической ошибкой",
         summary:
@@ -426,37 +395,32 @@ function mapRootStagePresentation(
     return terminalStage;
   }
 
-  switch (workflow.currentStepId) {
-    case "route_by_supported_scenario":
-    case "validate_fl_resident_request":
-    case "derive_validation_facts":
-    case "choose_validation_outcome":
-    case "switch_validation_outcome":
-      return {
-        label: "Проверка анкеты",
-        summary:
-          "Проверяем полноту данных, регуляторные ограничения и причину возможного отклонения.",
-      };
-    case "validate_registration_address":
-    case "wait_validate_registration_address":
-    case "extract_address_validation_result":
-    case "route_after_address_validation":
-      return {
-        label: "Проверка адреса",
-        summary: "Проверяем и нормализуем адрес регистрации бенефициара.",
-      };
-    case "run_abs_ensure_fl_resident_beneficiary":
-    case "wait_abs_ensure_fl_resident_beneficiary":
-      return {
-        label: "Регистрация в АБС",
-        summary: "Выполняем поиск, создание и привязку бенефициара в АБС.",
-      };
-    default:
-      return {
-        label: "Обработка заявки",
-        summary: "Процесс выполняется и ожидает следующего действия.",
-      };
+  if (hasStep(ROOT_VALIDATION_STEPS, workflow.currentStepId)) {
+    return {
+      label: "Проверка анкеты",
+      summary:
+        "Проверяем полноту данных, регуляторные ограничения и причину возможного отклонения.",
+    };
   }
+
+  if (hasStep(ROOT_ADDRESS_STEPS, workflow.currentStepId)) {
+    return {
+      label: "Проверка адреса",
+      summary: "Проверяем и нормализуем адрес регистрации бенефициара.",
+    };
+  }
+
+  if (hasStep(ROOT_ABS_STEPS, workflow.currentStepId)) {
+    return {
+      label: "Регистрация в АБС",
+      summary: "Выполняем поиск, создание и привязку бенефициара в АБС.",
+    };
+  }
+
+  return {
+    label: "Обработка заявки",
+    summary: "Процесс выполняется и ожидает следующего действия.",
+  };
 }
 
 function mapSubprocessStagePresentation(
@@ -468,36 +432,34 @@ function mapSubprocessStagePresentation(
     return terminalStage;
   }
 
-  switch (workflow.currentStepId) {
-    case "send_find_client":
-    case "wait_find_client":
-    case "choose_find_client_scenario":
-    case "switch_find_client_scenario":
-      return {
-        label: "Поиск клиента",
-        summary:
-          "Проверяем, есть ли клиент в АБС и нужен ли сценарий создания.",
-      };
-    case "send_create_client":
-    case "wait_create_client":
-      return {
-        label: "Создание клиента",
-        summary:
-          "Создаем карточку клиента в АБС, если поиск не дал результата.",
-      };
-    case "send_bind_client":
-    case "wait_bind_client":
-      return {
-        label: "Привязка клиента",
-        summary:
-          "Связываем найденного или созданного клиента с номинальным счетом.",
-      };
-    default:
-      return {
-        label: "Выполнение подпроцесса",
-        summary: "Подпроцесс выполняется и ожидает следующего действия.",
-      };
+  if (hasStep(SUBPROCESS_FIND_STEPS, workflow.currentStepId)) {
+    return {
+      label: "Поиск клиента",
+      summary:
+        "Проверяем, есть ли клиент в АБС и нужен ли сценарий создания.",
+    };
   }
+
+  if (hasStep(SUBPROCESS_CREATE_STEPS, workflow.currentStepId)) {
+    return {
+      label: "Создание клиента",
+      summary:
+        "Создаем карточку клиента в АБС, если поиск не дал результата.",
+    };
+  }
+
+  if (hasStep(SUBPROCESS_BIND_STEPS, workflow.currentStepId)) {
+    return {
+      label: "Привязка клиента",
+      summary:
+        "Связываем найденного или созданного клиента с номинальным счетом.",
+    };
+  }
+
+  return {
+    label: "Выполнение подпроцесса",
+    summary: "Подпроцесс выполняется и ожидает следующего действия.",
+  };
 }
 
 function mapStatusPresentation(status: string): {
@@ -521,6 +483,7 @@ function getSearchableText(
   const beneficiaryTypeLabel = mapBeneficiaryTypeLabel(beneficiary?.type);
   const inn = beneficiary?.inn?.trim();
   const participationId = beneficiary?.participationId?.trim();
+  const accountNumber = getAccountNumber(beneficiary);
 
   return [
     workflow.applicationRequestId,
@@ -529,6 +492,7 @@ function getSearchableText(
     beneficiaryTypeLabel,
     inn,
     participationId,
+    accountNumber,
     beneficiary?.contacts?.email,
     beneficiary?.contacts?.phone,
   ]
@@ -705,6 +669,156 @@ function isInProgressStatus(status: string) {
   return status !== "COMPLETE" && status !== "FAIL";
 }
 
+function parseJsonRecord(value: string | null): Record<string, unknown> | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return asRecord(JSON.parse(value));
+  } catch {
+    return null;
+  }
+}
+
+function getReasonMessage(reason: string | null): string | null {
+  if (!reason) {
+    return null;
+  }
+
+  const parsedReason = parseJsonRecord(reason);
+
+  if (!parsedReason) {
+    return reason;
+  }
+
+  const details = asRecord(parsedReason.details);
+
+  return (
+    asString(details?.reason) ??
+    asString(parsedReason.message) ??
+    asString(parsedReason.code) ??
+    reason
+  );
+}
+
+function getStepKind(stepId: string): StepKind {
+  if (stepId.startsWith("prepare_")) {
+    return "prepare";
+  }
+
+  if (stepId.startsWith("send_") || stepId.startsWith("run_") || stepId === "validate_registration_address") {
+    return "send";
+  }
+
+  if (stepId.startsWith("wait_")) {
+    return "wait";
+  }
+
+  if (stepId.startsWith("extract_") || stepId.startsWith("derive_")) {
+    return "extract";
+  }
+
+  if (stepId.startsWith("choose_") || stepId.startsWith("switch_") || stepId.startsWith("route_")) {
+    return "decision";
+  }
+
+  return "finish";
+}
+
+function buildStepSummary(
+  workflow: WorkflowResponse,
+  stepId: string,
+  stepState: WorkflowContextStepState | undefined,
+): string | null {
+  const kind = getStepKind(stepId);
+  const selectedNextStepId = asString(stepState?.selectedNextStepId);
+
+  if (kind === "prepare") {
+    return "Подготовлены данные для следующего вызова.";
+  }
+
+  if (kind === "send") {
+    const requestId = asString(stepState?.requestId);
+    return requestId
+      ? `Запрос отправлен во внешний сервис. Request ID: ${requestId}.`
+      : "Команда отправлена на исполнение.";
+  }
+
+  if (kind === "wait") {
+    if (stepState?.status === "FAILED") {
+      return "Во время ожидания ответа шаг завершился ошибкой.";
+    }
+
+    return "Получен ответ внешнего сервиса и возобновлено выполнение процесса.";
+  }
+
+  if (kind === "extract") {
+    return "Результат вызова разобран и сохранен в фактах процесса.";
+  }
+
+  if (kind === "decision") {
+    return selectedNextStepId
+      ? `Выбран следующий шаг: ${getStepLabel(selectedNextStepId)}.`
+      : "Принято решение о следующем переходе.";
+  }
+
+  if (stepId === workflow.currentStepId && workflow.status === "FAIL") {
+    return "Этот шаг завершил процесс ошибкой.";
+  }
+
+  return "Шаг завершил исполнение текущей ветки процесса.";
+}
+
+function getStepError(
+  workflow: WorkflowResponse,
+  stepId: string,
+  stepState: WorkflowContextStepState | undefined,
+): string | null {
+  if (stepId === "wait_find_client") {
+    const decision = asRecord(asRecord(workflow.context?.decisions)?.find_client_scenario);
+    const decisionOutcome = asString(decision?.outcome);
+
+    if (decisionOutcome === "NOT_FOUND") {
+      return null;
+    }
+  }
+
+  return (
+    getReasonMessage(asString(stepState?.reason)) ??
+    asString(stepState?.failureCode) ??
+    null
+  );
+}
+
+function buildStepEvidence(
+  workflow: WorkflowResponse,
+  steps: StepMap,
+  stepIds: readonly string[],
+): StepEvidenceItem[] {
+  return stepIds
+    .filter((stepId) => Boolean(steps[stepId]))
+    .map((stepId) => {
+      const stepState = steps[stepId];
+
+      return {
+        stepId,
+        title: getStepLabel(stepId),
+        kind: getStepKind(stepId),
+        status: asString(stepState?.status),
+        summary: buildStepSummary(workflow, stepId, stepState),
+        error: getStepError(workflow, stepId, stepState),
+        startedAt: asString(stepState?.startedAt)
+          ? formatWorkflowTimestamp(stepState.startedAt!)
+          : null,
+        finishedAt: asString(stepState?.finishedAt)
+          ? formatWorkflowTimestamp(stepState.finishedAt!)
+          : null,
+        panels: getStepEvidencePanels(workflow, stepId),
+      };
+    });
+}
+
 function buildStage(
   id: string,
   title: string,
@@ -712,6 +826,7 @@ function buildStage(
   summary: string,
   details: string[],
   timing: { startedAt: string | null; finishedAt: string | null },
+  steps: StepEvidenceItem[] = [],
 ): ProcessStageItem {
   return {
     id,
@@ -722,6 +837,7 @@ function buildStage(
     details,
     startedAt: timing.startedAt,
     finishedAt: timing.finishedAt,
+    steps,
   };
 }
 
@@ -740,6 +856,7 @@ function getValidationStage(
   steps: StepMap,
 ): ProcessStageItem {
   const timing = getStepTiming(steps, ROOT_VALIDATION_STEPS);
+  const stageSteps = buildStepEvidence(workflow, steps, ROOT_VALIDATION_STEPS);
   const issues = getValidationIssueMessages(workflow);
   const validationRejectSummary = getValidationRejectSummary(workflow);
   const decision = asRecord(asRecord(workflow.context?.decisions)?.validation);
@@ -759,6 +876,7 @@ function getValidationStage(
         "Анкета не прошла обязательные проверки и была отклонена.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -771,6 +889,7 @@ function getValidationStage(
         "Заявка отклонена по регуляторной причине.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -782,6 +901,7 @@ function getValidationStage(
       "Сценарий заявки не поддержан в текущем PoC.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -793,6 +913,7 @@ function getValidationStage(
       "Во время проверки анкеты произошла техническая ошибка.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -807,6 +928,7 @@ function getValidationStage(
       "Проверяем анкету, ограничения и причины возможного отклонения.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -825,6 +947,7 @@ function getValidationStage(
         : "Проверка анкеты пройдена, можно продолжать обработку.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -835,6 +958,7 @@ function getValidationStage(
     "Этап еще не начался.",
     details,
     timing,
+    stageSteps,
   );
 }
 
@@ -843,6 +967,7 @@ function getAddressStage(
   steps: StepMap,
 ): ProcessStageItem {
   const timing = getStepTiming(steps, ROOT_ADDRESS_STEPS);
+  const stageSteps = buildStepEvidence(workflow, steps, ROOT_ADDRESS_STEPS);
   const outcome = getTerminalOutcome(workflow);
   const addressCheck = asRecord(
     asRecord(workflow.context?.facts)?.address_check,
@@ -874,6 +999,7 @@ function getAddressStage(
       "До проверки адреса процесс не дошел и завершился на более раннем этапе.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -886,6 +1012,7 @@ function getAddressStage(
         "Адрес не прошел проверку или не был подтвержден внешним сервисом.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -897,6 +1024,7 @@ function getAddressStage(
       "Во время проверки адреса произошла техническая ошибка.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -913,6 +1041,7 @@ function getAddressStage(
         : "Проверяем и нормализуем адрес регистрации бенефициара.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -931,6 +1060,7 @@ function getAddressStage(
           : "Проверка адреса завершена успешно.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -941,6 +1071,7 @@ function getAddressStage(
     "Этап еще не начался.",
     details,
     timing,
+    stageSteps,
   );
 }
 
@@ -960,6 +1091,12 @@ function describeAbsOutcome(subprocesses: WorkflowResponse[]): {
   const findClientResult = getEffectResult(child, "send_find_client");
   const createClientResult = getEffectResult(child, "send_create_client");
   const bindClientResult = getEffectResult(child, "send_bind_client");
+  const childFacts = asRecord(child.context?.facts);
+  const childDecisions = asRecord(child.context?.decisions);
+  const findClientFacts = asRecord(childFacts?.find_client_result);
+  const findClientDecision = asRecord(childDecisions?.find_client_scenario);
+  const hasMatches = asBoolean(findClientFacts?.hasMatches);
+  const findClientDecisionOutcome = asString(findClientDecision?.outcome);
   const createPayload = asRecord(createClientResult.result?.payload);
   const createdClient = asRecord(createPayload?.client);
   const createClientId = asString(createdClient?.id);
@@ -985,7 +1122,7 @@ function describeAbsOutcome(subprocesses: WorkflowResponse[]): {
     details.push("Клиент привязан к номинальному счету.");
   }
 
-  if (findClientResult.errorMessage) {
+  if (findClientDecisionOutcome === "NOT_FOUND" || hasMatches === false) {
     return {
       summary:
         "Клиент не найден в АБС, поэтому была создана новая карточка и выполнена привязка.",
@@ -1019,6 +1156,7 @@ function getAbsStage(
   subprocesses: WorkflowResponse[],
 ): ProcessStageItem {
   const timing = getStepTiming(steps, ROOT_ABS_STEPS);
+  const stageSteps = buildStepEvidence(workflow, steps, ROOT_ABS_STEPS);
   const outcome = getTerminalOutcome(workflow);
   const absOutcome = describeAbsOutcome(subprocesses);
 
@@ -1035,6 +1173,7 @@ function getAbsStage(
       "До операций в АБС процесс не дошел и завершился раньше.",
       absOutcome.details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1046,6 +1185,7 @@ function getAbsStage(
       "Подпроцесс в АБС завершился ошибкой и требует проверки.",
       absOutcome.details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1060,6 +1200,7 @@ function getAbsStage(
       absOutcome.summary,
       absOutcome.details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1075,6 +1216,7 @@ function getAbsStage(
       absOutcome.summary,
       absOutcome.details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1085,6 +1227,7 @@ function getAbsStage(
     "Этап еще не начался.",
     absOutcome.details,
     timing,
+    stageSteps,
   );
 }
 
@@ -1093,6 +1236,7 @@ function getResultStage(
   steps: StepMap,
 ): ProcessStageItem {
   const timing = getStepTiming(steps, ROOT_RESULT_STEPS);
+  const stageSteps = buildStepEvidence(workflow, steps, ROOT_RESULT_STEPS);
   const terminalStage = mapTerminalStagePresentation(workflow);
   const details: string[] = [];
   const outcome = getTerminalOutcome(workflow);
@@ -1107,6 +1251,7 @@ function getResultStage(
       terminalStage?.summary ?? "Процесс завершен успешно.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1118,6 +1263,7 @@ function getResultStage(
       terminalStage?.summary ?? "Процесс завершен с ошибкой.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1128,6 +1274,7 @@ function getResultStage(
     "Финальный результат пока не сформирован.",
     details,
     timing,
+    stageSteps,
   );
 }
 
@@ -1136,7 +1283,12 @@ function getFindClientStage(
   steps: StepMap,
 ): ProcessStageItem {
   const timing = getStepTiming(steps, SUBPROCESS_FIND_STEPS);
+  const stageSteps = buildStepEvidence(workflow, steps, SUBPROCESS_FIND_STEPS);
   const findResult = getEffectResult(workflow, "send_find_client");
+  const findFacts = asRecord(asRecord(workflow.context?.facts)?.find_client_result);
+  const decision = asRecord(asRecord(workflow.context?.decisions)?.find_client_scenario);
+  const hasMatches = asBoolean(findFacts?.hasMatches);
+  const decisionOutcome = asString(decision?.outcome);
   const details: string[] = [];
 
   appendIfPresent(details, "Request ID", findResult.requestId);
@@ -1157,10 +1309,11 @@ function getFindClientStage(
       "Ищем клиента в АБС и определяем, нужен ли сценарий создания.",
       details,
       timing,
+      stageSteps,
     );
   }
 
-  if (findResult.errorMessage) {
+  if (decisionOutcome === "NOT_FOUND" || hasMatches === false) {
     return buildStage(
       "find_client",
       "Поиск клиента",
@@ -1168,6 +1321,7 @@ function getFindClientStage(
       "Клиент в АБС не найден, поэтому запускаем создание новой карточки.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1179,6 +1333,7 @@ function getFindClientStage(
       "Клиент найден в АБС, можно переходить к привязке.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1189,6 +1344,7 @@ function getFindClientStage(
     "Этап еще не начался.",
     details,
     timing,
+    stageSteps,
   );
 }
 
@@ -1197,7 +1353,7 @@ function getCreateClientStage(
   steps: StepMap,
 ): ProcessStageItem {
   const timing = getStepTiming(steps, SUBPROCESS_CREATE_STEPS);
-  const findResult = getEffectResult(workflow, "send_find_client");
+  const stageSteps = buildStepEvidence(workflow, steps, SUBPROCESS_CREATE_STEPS);
   const createResult = getEffectResult(workflow, "send_create_client");
   const clientPayload = asRecord(
     asRecord(createResult.result?.payload)?.client,
@@ -1207,20 +1363,6 @@ function getCreateClientStage(
 
   appendIfPresent(details, "Request ID", createResult.requestId);
   appendIfPresent(details, "Client ID", createdClientId);
-
-  if (
-    findResult.errorMessage == null &&
-    !hasStartedStep(steps, SUBPROCESS_CREATE_STEPS)
-  ) {
-    return buildStage(
-      "create_client",
-      "Создание клиента",
-      "skipped",
-      "Создание карточки не понадобилось: клиент уже существовал в АБС.",
-      details,
-      timing,
-    );
-  }
 
   if (
     isCurrentStep(workflow, SUBPROCESS_CREATE_STEPS) &&
@@ -1233,6 +1375,7 @@ function getCreateClientStage(
       "Создаем новую карточку клиента в АБС.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1244,6 +1387,7 @@ function getCreateClientStage(
       "Во время создания клиента произошла ошибка.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1257,6 +1401,23 @@ function getCreateClientStage(
         : "Создание клиента завершено.",
       details,
       timing,
+      stageSteps,
+    );
+  }
+
+  if (
+    hasStartedStep(steps, SUBPROCESS_FIND_STEPS) ||
+    hasStartedStep(steps, SUBPROCESS_BIND_STEPS) ||
+    !isInProgressStatus(workflow.status)
+  ) {
+    return buildStage(
+      "create_client",
+      "Создание клиента",
+      "skipped",
+      "Создание карточки не понадобилось: клиент уже существовал в АБС.",
+      details,
+      timing,
+      stageSteps,
     );
   }
 
@@ -1267,6 +1428,7 @@ function getCreateClientStage(
     "Этап еще не начался.",
     details,
     timing,
+    stageSteps,
   );
 }
 
@@ -1275,6 +1437,7 @@ function getBindClientStage(
   steps: StepMap,
 ): ProcessStageItem {
   const timing = getStepTiming(steps, SUBPROCESS_BIND_STEPS);
+  const stageSteps = buildStepEvidence(workflow, steps, SUBPROCESS_BIND_STEPS);
   const bindResult = getEffectResult(workflow, "send_bind_client");
   const bindPayload = asRecord(bindResult.result?.payload);
   const link = asRecord(bindPayload?.link);
@@ -1297,6 +1460,7 @@ function getBindClientStage(
       "Привязываем клиента к номинальному счету.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1308,6 +1472,7 @@ function getBindClientStage(
       "Во время привязки клиента произошла ошибка.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1321,6 +1486,7 @@ function getBindClientStage(
         : "Привязка клиента завершена.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1331,6 +1497,7 @@ function getBindClientStage(
     "Этап еще не начался.",
     details,
     timing,
+    stageSteps,
   );
 }
 
@@ -1339,6 +1506,7 @@ function getSubprocessResultStage(
   steps: StepMap,
 ): ProcessStageItem {
   const timing = getStepTiming(steps, SUBPROCESS_RESULT_STEPS);
+  const stageSteps = buildStepEvidence(workflow, steps, SUBPROCESS_RESULT_STEPS);
   const terminalStage = mapTerminalStagePresentation(workflow);
   const outcome = getTerminalOutcome(workflow);
   const details: string[] = [];
@@ -1353,6 +1521,7 @@ function getSubprocessResultStage(
       terminalStage?.summary ?? "Подпроцесс завершен успешно.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1364,6 +1533,7 @@ function getSubprocessResultStage(
       terminalStage?.summary ?? "Подпроцесс завершен с ошибкой.",
       details,
       timing,
+      stageSteps,
     );
   }
 
@@ -1374,6 +1544,7 @@ function getSubprocessResultStage(
     "Финальный результат пока не сформирован.",
     details,
     timing,
+    stageSteps,
   );
 }
 
@@ -1439,6 +1610,7 @@ function buildOverviewSecondary(
   beneficiary: BeneficiaryInput | null,
 ): ProcessOverviewItem[] {
   const participationId = beneficiary?.participationId?.trim();
+  const accountNumber = getAccountNumber(beneficiary);
   const isSubprocess = workflow.parentProcessId != null;
   const mainProcessId = isSubprocess
     ? workflow.rootProcessId
@@ -1448,6 +1620,11 @@ function buildOverviewSecondary(
     {
       label: "Participation ID",
       value: participationId ?? "Не указан",
+      compact: true,
+    },
+    {
+      label: "Номер счета",
+      value: accountNumber ?? "Не указан",
       compact: true,
     },
     {
@@ -1471,6 +1648,34 @@ function buildOverviewSecondary(
       compact: true,
     },
   ];
+}
+
+function buildSubflowHandoff(
+  workflow: WorkflowResponse,
+  subprocessWorkflows: WorkflowResponse[],
+) {
+  if (workflow.parentProcessId != null) {
+    return null;
+  }
+
+  const childWorkflow = subprocessWorkflows[0];
+
+  if (!childWorkflow) {
+    return null;
+  }
+
+  const parentFacts = asRecord(workflow.context?.facts);
+  const parentInput = parentFacts?.abs_ensure_subflow_input;
+  const childInput = childWorkflow.context?.input?.application ?? null;
+
+  if (parentInput == null && childInput == null) {
+    return null;
+  }
+
+  return {
+    parentInput,
+    childInput,
+  };
 }
 
 export function mapWorkflowToDetails(
@@ -1510,6 +1715,7 @@ export function mapWorkflowToDetails(
     resultData: workflow.result ?? null,
     history: mapWorkflowHistory(workflow.history),
     subprocesses,
+    subflowHandoff: buildSubflowHandoff(workflow, subprocessWorkflows),
     stages,
   };
 }
