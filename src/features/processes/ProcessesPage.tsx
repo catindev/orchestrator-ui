@@ -22,9 +22,9 @@ export function ProcessesPage() {
         subtitle="Заявки на регистрацию"
       />
       <SearchInput
-        label="Поиск по заявке, ИНН, participation ID или имени бенефициара"
+        label="Поиск по заявке, ИНН, ФИО, номеру счета или ID в системе мерчанта"
         name="application-search"
-        placeholder="ID заявки, ИНН, ФИО, participation ID"
+        placeholder="ID заявки, ИНН, ФИО, номер счета, ID в системе мерчанта"
         value={query}
         onChange={setQuery}
       />

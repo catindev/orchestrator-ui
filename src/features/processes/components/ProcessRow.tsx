@@ -23,6 +23,7 @@ export function ProcessRow({ process }: ProcessRowProps) {
         label="ID заявки"
         value={process.applicationRequestId}
         description={process.requestMeta}
+        copyValue={process.applicationRequestId}
       />
       <ProcessMeta
         label="Текущий этап"

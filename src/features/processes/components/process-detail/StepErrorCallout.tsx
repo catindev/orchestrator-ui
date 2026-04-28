@@ -3,5 +3,9 @@ type StepErrorCalloutProps = {
 }
 
 export function StepErrorCallout({ error }: StepErrorCalloutProps) {
-  return <p className="step-evidence__error">{error}</p>
+  return (
+    <p className="step-evidence__error">
+      <code className="step-evidence__error-code">{error}</code>
+    </p>
+  )
 }

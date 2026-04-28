@@ -75,7 +75,7 @@ export function JsonExplorer({
         value={data as object}
         collapsed={collapsed}
         shouldExpandNodeInitially={
-          collapsed === false && defaultExpanded.length > 0
+          defaultExpanded.length > 0
             ? shouldExpandPath(defaultExpanded)
             : undefined
         }

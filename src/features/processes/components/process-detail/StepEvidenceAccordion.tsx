@@ -11,12 +11,13 @@ type StepEvidenceAccordionProps = {
 }
 
 const STEP_KIND_LABELS: Record<StepKind, string> = {
-  prepare: 'Подготовка',
-  send: 'Отправка',
-  wait: 'Ожидание',
-  extract: 'Разбор',
-  decision: 'Решение',
-  finish: 'Завершение',
+  rules: 'бизнес-проверки',
+  prepare: 'маппинг данных',
+  send: 'внешний вызов',
+  wait: 'ожидание ответа',
+  extract: 'маппинг данных',
+  decision: 'бизнес-логика',
+  finish: 'завершение',
 }
 
 function getPanelExpansion(panelKey: string) {

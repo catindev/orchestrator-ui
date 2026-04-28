@@ -21,6 +21,10 @@ function getDecisions(workflow: WorkflowResponse) {
   return asRecord(workflow.context?.decisions)
 }
 
+function getChecks(workflow: WorkflowResponse) {
+  return asRecord(workflow.context?.checks)
+}
+
 function getEffects(workflow: WorkflowResponse) {
   return asRecord(workflow.context?.effects)
 }
@@ -34,10 +38,22 @@ function getWaitResult(workflow: WorkflowResponse, key: string) {
 }
 
 const STEP_EVIDENCE: Record<string, EvidenceExtractor> = {
+  validate_fl_resident_request: (workflow) => ({
+    facts: {
+      title: 'Результат проверки rules',
+      data: asRecord(getChecks(workflow)?.validation),
+    },
+  }),
   derive_validation_facts: (workflow) => ({
     facts: {
       title: 'Собранные факты проверки',
       data: asRecord(getFacts(workflow)?.validation),
+    },
+  }),
+  build_validation_reject_terminal_result: (workflow) => ({
+    facts: {
+      title: 'Собранный финальный результат',
+      data: getFacts(workflow)?.terminalResult,
     },
   }),
   choose_validation_outcome: (workflow) => ({
@@ -68,10 +84,22 @@ const STEP_EVIDENCE: Record<string, EvidenceExtractor> = {
       data: getWaitResult(workflow, 'validate_registration_address'),
     },
   }),
+  finish_fail_address_wait_error: (workflow) => ({
+    response: {
+      title: 'Ответ сервиса проверки адреса',
+      data: getWaitResult(workflow, 'validate_registration_address'),
+    },
+  }),
   extract_address_validation_result: (workflow) => ({
     facts: {
       title: 'Нормализованный результат проверки',
       data: getFacts(workflow)?.address_check,
+    },
+  }),
+  prepare_abs_ensure_fl_resident_beneficiary_input: (workflow) => ({
+    request: {
+      title: 'Подготовленный вход подпроцесса',
+      data: getFacts(workflow)?.abs_ensure_subflow_input,
     },
   }),
   run_abs_ensure_fl_resident_beneficiary: (workflow) => ({
@@ -142,6 +170,12 @@ const STEP_EVIDENCE: Record<string, EvidenceExtractor> = {
       data: getWaitResult(workflow, 'send_create_client'),
     },
   }),
+  finish_fail_create_client_wait_error: (workflow) => ({
+    response: {
+      title: 'Ответ адаптера АБС',
+      data: getWaitResult(workflow, 'send_create_client'),
+    },
+  }),
   prepare_bind_client_request: (workflow) => ({
     request: {
       title: 'Подготовленный запрос',
@@ -159,6 +193,18 @@ const STEP_EVIDENCE: Record<string, EvidenceExtractor> = {
     },
   }),
   wait_bind_client: (workflow) => ({
+    response: {
+      title: 'Ответ адаптера АБС',
+      data: getWaitResult(workflow, 'send_bind_client'),
+    },
+  }),
+  finish_fail_bind_client_wait_error: (workflow) => ({
+    response: {
+      title: 'Ответ адаптера АБС',
+      data: getWaitResult(workflow, 'send_bind_client'),
+    },
+  }),
+  finish_fail_bind_client_wait_timeout: (workflow) => ({
     response: {
       title: 'Ответ адаптера АБС',
       data: getWaitResult(workflow, 'send_bind_client'),

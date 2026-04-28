@@ -69,8 +69,8 @@ export function ProcessDetailsPage() {
     ? `/processes/${resolvedParentProcessId}`
     : "/";
   const backLinkLabel = resolvedParentProcessId
-    ? "< К процессу"
-    : "< Все заявки";
+    ? "В основной процесс"
+    : "Все заявки";
 
   function renderActiveTabContent() {
     if (!process) {
@@ -107,7 +107,16 @@ export function ProcessDetailsPage() {
           value={process.contextSummary}
           emptyMessage="У процесса нет данных в context.facts/checks/effects/decisions."
           collapsed={false}
-          defaultExpanded={["effects", "effects.send_bind_client.waitResult.error", "effects.send_create_client.waitResult.error", "effects.send_find_client.waitResult.error", "effects.validate_registration_address.waitResult.error", "effects.send_bind_client.waitResult.result.payload", "effects.send_create_client.waitResult.result.payload", "effects.send_find_client.waitResult.result.payload"]}
+          defaultExpanded={[
+            "effects",
+            "effects.send_bind_client.waitResult.error",
+            "effects.send_create_client.waitResult.error",
+            "effects.send_find_client.waitResult.error",
+            "effects.validate_registration_address.waitResult.error",
+            "effects.send_bind_client.waitResult.result.payload",
+            "effects.send_create_client.waitResult.result.payload",
+            "effects.send_find_client.waitResult.result.payload",
+          ]}
         />
       );
     }

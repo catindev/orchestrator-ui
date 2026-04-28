@@ -120,9 +120,11 @@ export type ProcessOverviewItem = {
   value: string
   description?: string
   compact?: boolean
+  copyValue?: string
 }
 
 export type StepKind =
+  | 'rules'
   | 'prepare'
   | 'send'
   | 'wait'
@@ -158,6 +160,7 @@ export type StepEvidenceItem = {
 export type ProcessSubflowHandoff = {
   parentInput: unknown
   childInput: unknown
+  isDifferent: boolean
 }
 
 export type ProcessStageItem = {

@@ -6,6 +6,10 @@ type SubflowHandoffPanelProps = {
 }
 
 export function SubflowHandoffPanel({ handoff }: SubflowHandoffPanelProps) {
+  if (!handoff.isDifferent) {
+    return null
+  }
+
   return (
     <section className="handoff-panel" aria-label="Передача данных в подпроцесс">
       <div className="handoff-panel__header">
@@ -25,6 +29,7 @@ export function SubflowHandoffPanel({ handoff }: SubflowHandoffPanelProps) {
           <JsonExplorer
             data={handoff.parentInput}
             collapsed={2}
+            defaultExpanded={['beneficiary', 'beneficiary.address', 'beneficiary.account']}
             className="handoff-panel__json"
           />
         </section>
@@ -34,6 +39,7 @@ export function SubflowHandoffPanel({ handoff }: SubflowHandoffPanelProps) {
           <JsonExplorer
             data={handoff.childInput}
             collapsed={2}
+            defaultExpanded={['beneficiary', 'beneficiary.address', 'beneficiary.account']}
             className="handoff-panel__json"
           />
         </section>

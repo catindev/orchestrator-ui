@@ -172,7 +172,21 @@ function getStepMap(workflow: WorkflowResponse): StepMap {
   return rawSteps as StepMap;
 }
 
-function getStepLabel(stepId: string): string {
+function getStepLabel(
+  stepId: string,
+  workflowOrFlowId?: WorkflowResponse | string,
+): string {
+  const flowId =
+    typeof workflowOrFlowId === "string"
+      ? workflowOrFlowId
+      : workflowOrFlowId?.id;
+
+  if (stepId === "finish_success") {
+    return flowId === "abs.ensure_fl_resident_beneficiary"
+      ? "Подпроцесс завершён успешно"
+      : "Успешное завершение";
+  }
+
   return STEP_LABELS[stepId] ?? stepId;
 }
 
@@ -293,14 +307,22 @@ function getAccountNumber(beneficiary: BeneficiaryInput | null): string | null {
   );
 }
 
-function formatBeneficiaryMeta(beneficiary: BeneficiaryInput | null): string {
+function formatBeneficiaryOverviewMeta(
+  beneficiary: BeneficiaryInput | null,
+): string {
   const beneficiaryTypeLabel = mapBeneficiaryTypeLabel(beneficiary?.type);
   const inn = beneficiary?.inn?.trim();
+
+  return [inn ? `ИНН ${inn}` : null, beneficiaryTypeLabel]
+    .filter(Boolean)
+    .join(" • ");
+}
+
+function formatBeneficiaryListMeta(beneficiary: BeneficiaryInput | null): string {
   const accountNumber = getAccountNumber(beneficiary);
 
   return [
-    inn ? `ИНН ${inn}` : null,
-    beneficiaryTypeLabel,
+    formatBeneficiaryOverviewMeta(beneficiary),
     accountNumber ? `Счет ${accountNumber}` : null,
   ]
     .filter(Boolean)
@@ -314,8 +336,8 @@ function formatRequestMeta(
   const participationId = beneficiary?.participationId?.trim();
 
   return participationId
-    ? `Participation ID: ${participationId}`
-    : `Process ID: ${processId}`;
+    ? `ID в системе мерчанта: ${participationId}`
+    : `ID процесса: ${processId}`;
 }
 
 function mapTerminalStagePresentation(
@@ -512,7 +534,7 @@ export function mapWorkflowToListItem(
     processId: workflow.processId,
     applicationRequestId: workflow.applicationRequestId,
     beneficiaryName: formatBeneficiaryName(beneficiary),
-    beneficiaryMeta: formatBeneficiaryMeta(beneficiary),
+    beneficiaryMeta: formatBeneficiaryListMeta(beneficiary),
     requestMeta: formatRequestMeta(beneficiary, workflow.processId),
     stageLabel: stagePresentation.label,
     stageSummary: stagePresentation.summary,
@@ -541,13 +563,14 @@ function formatHistoryDetails(details: Record<string, unknown> | undefined) {
 
 function mapWorkflowHistory(
   history: WorkflowResponse["history"],
+  flowId: string,
 ): ProcessHistoryItem[] {
   return (history ?? []).map((event) => ({
     at: formatWorkflowTimestamp(event.at),
     kind: event.kind,
     kindLabel: getHistoryKindLabel(event.kind),
     stepId: event.stepId,
-    stepLabel: getStepLabel(event.stepId),
+    stepLabel: getStepLabel(event.stepId, flowId),
     details: formatHistoryDetails(event.details),
   }));
 }
@@ -703,6 +726,10 @@ function getReasonMessage(reason: string | null): string | null {
 }
 
 function getStepKind(stepId: string): StepKind {
+  if (stepId === "validate_fl_resident_request") {
+    return "rules";
+  }
+
   if (stepId.startsWith("prepare_")) {
     return "prepare";
   }
@@ -715,7 +742,11 @@ function getStepKind(stepId: string): StepKind {
     return "wait";
   }
 
-  if (stepId.startsWith("extract_") || stepId.startsWith("derive_")) {
+  if (
+    stepId.startsWith("extract_") ||
+    stepId.startsWith("derive_") ||
+    stepId.startsWith("build_")
+  ) {
     return "extract";
   }
 
@@ -724,6 +755,23 @@ function getStepKind(stepId: string): StepKind {
   }
 
   return "finish";
+}
+
+function mapStepExecutionStatus(status: string | null): string | null {
+  switch (status) {
+    case "COMPLETED":
+      return "Завершен";
+    case "FAILED":
+      return "Ошибка";
+    case "WAITING":
+      return "Ожидание";
+    case "RUNNING":
+      return "Выполняется";
+    case "PENDING":
+      return "Не начат";
+    default:
+      return status;
+  }
 }
 
 function buildStepSummary(
@@ -736,6 +784,10 @@ function buildStepSummary(
 
   if (kind === "prepare") {
     return "Подготовлены данные для следующего вызова.";
+  }
+
+  if (kind === "rules") {
+    return "Заявка проверена по бизнес- и регуляторным правилам.";
   }
 
   if (kind === "send") {
@@ -759,7 +811,7 @@ function buildStepSummary(
 
   if (kind === "decision") {
     return selectedNextStepId
-      ? `Выбран следующий шаг: ${getStepLabel(selectedNextStepId)}.`
+      ? `Выбран следующий шаг: ${getStepLabel(selectedNextStepId, workflow)}.`
       : "Принято решение о следующем переходе.";
   }
 
@@ -803,9 +855,9 @@ function buildStepEvidence(
 
       return {
         stepId,
-        title: getStepLabel(stepId),
+        title: getStepLabel(stepId, workflow),
         kind: getStepKind(stepId),
-        status: asString(stepState?.status),
+        status: mapStepExecutionStatus(asString(stepState?.status)),
         summary: buildStepSummary(workflow, stepId, stepState),
         error: getStepError(workflow, stepId, stepState),
         startedAt: asString(stepState?.startedAt)
@@ -864,7 +916,9 @@ function getValidationStage(
   const details: string[] = [];
   const decisionReason = asString(decision?.reason);
 
-  appendIfPresent(details, "Причина отклонения", decisionReason);
+  if (outcome === "VALIDATION_REJECT" || outcome === "COMPLIANCE_REJECT") {
+    appendIfPresent(details, "Причина отклонения", decisionReason);
+  }
   issues.slice(0, 3).forEach((message) => details.push(message));
 
   if (outcome === "VALIDATION_REJECT") {
@@ -1476,6 +1530,18 @@ function getBindClientStage(
     );
   }
 
+  if (workflow.status === "FAIL" && hasStep(SUBPROCESS_BIND_STEPS, workflow.currentStepId)) {
+    return buildStage(
+      "bind_client",
+      "Привязка клиента",
+      "error",
+      bindResult.errorMessage ?? "Во время привязки клиента произошла ошибка.",
+      details,
+      timing,
+      stageSteps,
+    );
+  }
+
   if (hasStartedStep(steps, SUBPROCESS_BIND_STEPS)) {
     return buildStage(
       "bind_client",
@@ -1583,7 +1649,7 @@ function buildOverviewPrimary(
     {
       label: "Бенефициар",
       value: formatBeneficiaryName(beneficiary),
-      description: formatBeneficiaryMeta(beneficiary),
+      description: formatBeneficiaryOverviewMeta(beneficiary),
     },
     {
       label: "Текущий этап",
@@ -1615,28 +1681,40 @@ function buildOverviewSecondary(
   const mainProcessId = isSubprocess
     ? workflow.rootProcessId
     : workflow.processId;
-
-  return [
+  const overviewItems: ProcessOverviewItem[] = [
     {
-      label: "Participation ID",
+      label: "ID в системе мерчанта",
       value: participationId ?? "Не указан",
       compact: true,
+      copyValue: participationId ?? undefined,
     },
     {
       label: "Номер счета",
       value: accountNumber ?? "Не указан",
       compact: true,
+      copyValue: accountNumber ?? undefined,
     },
-    {
+  ];
+
+  if (!isSubprocess || workflow.applicationRequestId !== mainProcessId) {
+    overviewItems.push({
       label: "ID заявки",
       value: workflow.applicationRequestId,
       compact: true,
-    },
-    {
+      copyValue: workflow.applicationRequestId,
+    });
+  }
+
+  if (isSubprocess || workflow.applicationRequestId !== mainProcessId) {
+    overviewItems.push({
       label: isSubprocess ? "ID основного процесса" : "ID процесса",
       value: mainProcessId,
       compact: true,
-    },
+      copyValue: mainProcessId,
+    });
+  }
+
+  overviewItems.push(
     {
       label: "Бизнес-процесс",
       value: workflow.id,
@@ -1647,7 +1725,9 @@ function buildOverviewSecondary(
       value: workflow.version,
       compact: true,
     },
-  ];
+  );
+
+  return overviewItems;
 }
 
 function buildSubflowHandoff(
@@ -1672,9 +1752,13 @@ function buildSubflowHandoff(
     return null;
   }
 
+  const isDifferent =
+    JSON.stringify(parentInput ?? null) !== JSON.stringify(childInput ?? null);
+
   return {
     parentInput,
     childInput,
+    isDifferent,
   };
 }
 
@@ -1713,7 +1797,7 @@ export function mapWorkflowToDetails(
     inputApplication: workflow.context?.input?.application ?? null,
     contextSummary: pickProcessContextSummary(workflow),
     resultData: workflow.result ?? null,
-    history: mapWorkflowHistory(workflow.history),
+    history: mapWorkflowHistory(workflow.history, workflow.id),
     subprocesses,
     subflowHandoff: buildSubflowHandoff(workflow, subprocessWorkflows),
     stages,
