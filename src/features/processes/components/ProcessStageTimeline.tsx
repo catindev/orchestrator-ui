@@ -93,7 +93,12 @@ export function ProcessStageTimeline({ process }: ProcessStageTimelineProps) {
           {stage.steps.length > 0 ? (
             <details
               className="process-stage__steps-disclosure"
-              open={stage.steps.some((step) => step.error != null)}
+              open={
+                stage.steps.some((step) => step.error != null) ||
+                (stage.id === "validation" &&
+                  stage.state === "error" &&
+                  stage.steps.some((step) => step.kind === "rules"))
+              }
             >
               <summary className="process-stage__steps-summary">
                 <span className="process-stage__steps-title">
@@ -103,7 +108,12 @@ export function ProcessStageTimeline({ process }: ProcessStageTimelineProps) {
                   {stage.steps.length}
                 </span>
               </summary>
-              <StepEvidenceAccordion items={stage.steps} />
+              <StepEvidenceAccordion
+                items={stage.steps}
+                autoOpenRulesStep={
+                  stage.id === "validation" && stage.state === "error"
+                }
+              />
             </details>
           ) : null}
 

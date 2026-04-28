@@ -8,6 +8,7 @@ import { StepErrorCallout } from './StepErrorCallout'
 
 type StepEvidenceAccordionProps = {
   items: StepEvidenceItem[]
+  autoOpenRulesStep?: boolean
 }
 
 const STEP_KIND_LABELS: Record<StepKind, string> = {
@@ -64,6 +65,7 @@ function renderPanel(
 
 export function StepEvidenceAccordion({
   items,
+  autoOpenRulesStep = false,
 }: StepEvidenceAccordionProps) {
   if (items.length === 0) {
     return null
@@ -80,7 +82,7 @@ export function StepEvidenceAccordion({
           <details
             className="step-evidence"
             key={step.stepId}
-            open={step.error != null}
+            open={step.error != null || (autoOpenRulesStep && step.kind === 'rules')}
           >
             <summary className="step-evidence__summary">
               <div className="step-evidence__summary-main">
