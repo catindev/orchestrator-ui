@@ -200,10 +200,22 @@
   text-decoration: none;
 }
 
+.app-back-link__icon {
+  inline-size: 0.95rem;
+  block-size: 0.95rem;
+  flex: 0 0 auto;
+  opacity: 0.78;
+}
+
 .app-back-link:hover,
 .app-back-link:focus-visible {
   color: var(--text-strong);
   background: var(--surface-hover);
+}
+
+.app-back-link:hover .app-back-link__icon,
+.app-back-link:focus-visible .app-back-link__icon {
+  opacity: 1;
 }
 
 .app-page-header {
@@ -398,6 +410,67 @@
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.app-copyable {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.app-copyable__value {
+  min-width: 0;
+  order: 2;
+  overflow-wrap: anywhere;
+}
+
+.app-copyable__button {
+  flex: 0 0 auto;
+  order: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.45rem;
+  block-size: 1.45rem;
+  padding: 0;
+  border: 0.0625rem solid var(--border-color);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  line-height: 1;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background-color 140ms ease;
+}
+
+.app-copyable__button--copied {
+  border-color: var(--status-success-border);
+  background: var(--status-success-bg);
+}
+
+.app-copyable__icon {
+  inline-size: 0.7rem;
+  block-size: 0.7rem;
+  opacity: 0.62;
+}
+
+.app-copyable__button:hover,
+.app-copyable__button:focus-visible {
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+  background: var(--surface-hover);
+  outline: none;
+}
+
+.app-copyable__button:hover .app-copyable__icon,
+.app-copyable__button:focus-visible .app-copyable__icon,
+.app-copyable__button--copied .app-copyable__icon {
+  opacity: 0.92;
 }
 
 .app-visually-hidden {

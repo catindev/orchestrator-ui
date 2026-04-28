@@ -17,6 +17,7 @@ export function ProcessDetailsOverview({
             label={item.label}
             value={item.value}
             description={item.description}
+            copyValue={item.copyValue}
           />
         ))}
       </div>
@@ -29,6 +30,7 @@ export function ProcessDetailsOverview({
             value={item.value}
             description={item.description}
             compact={item.compact}
+            copyValue={item.copyValue}
           />
         ))}
       </div>
