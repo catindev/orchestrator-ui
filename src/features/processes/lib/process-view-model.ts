@@ -879,6 +879,7 @@ function buildStage(
   details: string[],
   timing: { startedAt: string | null; finishedAt: string | null },
   steps: StepEvidenceItem[] = [],
+  actionLink?: ProcessStageItem["actionLink"],
 ): ProcessStageItem {
   return {
     id,
@@ -890,6 +891,7 @@ function buildStage(
     startedAt: timing.startedAt,
     finishedAt: timing.finishedAt,
     steps,
+    actionLink,
   };
 }
 
@@ -1129,78 +1131,95 @@ function getAddressStage(
   );
 }
 
+function pickRelevantSubprocess(
+  subprocesses: WorkflowResponse[],
+): WorkflowResponse | null {
+  return (
+    subprocesses.find((subprocess) => subprocess.status === "FAIL") ??
+    subprocesses.find((subprocess) => isInProgressStatus(subprocess.status)) ??
+    subprocesses[0] ??
+    null
+  );
+}
+
+function mapSubprocessBusinessStageLabel(workflow: WorkflowResponse): string {
+  const stepId = workflow.currentStepId;
+
+  if (hasStep(SUBPROCESS_FIND_STEPS, stepId) || stepId.includes("find_client")) {
+    return "Поиск клиента";
+  }
+
+  if (
+    hasStep(SUBPROCESS_CREATE_STEPS, stepId) ||
+    stepId.includes("create_client")
+  ) {
+    return "Создание клиента";
+  }
+
+  if (hasStep(SUBPROCESS_BIND_STEPS, stepId) || stepId.includes("bind_client")) {
+    return "Привязка клиента";
+  }
+
+  return "Итог подпроцесса";
+}
+
 function describeAbsOutcome(subprocesses: WorkflowResponse[]): {
   summary: string;
   details: string[];
+  hasSubprocess: boolean;
+  actionLink?: ProcessStageItem["actionLink"];
 } {
-  const child = subprocesses[0];
+  const child = pickRelevantSubprocess(subprocesses);
 
   if (!child) {
     return {
       summary: "Подпроцесс регистрации в АБС еще не стартовал.",
       details: [],
+      hasSubprocess: false,
     };
   }
-
-  const findClientResult = getEffectResult(child, "send_find_client");
-  const createClientResult = getEffectResult(child, "send_create_client");
-  const bindClientResult = getEffectResult(child, "send_bind_client");
-  const childFacts = asRecord(child.context?.facts);
-  const childDecisions = asRecord(child.context?.decisions);
-  const findClientFacts = asRecord(childFacts?.find_client_result);
-  const findClientDecision = asRecord(childDecisions?.find_client_scenario);
-  const hasMatches = asBoolean(findClientFacts?.hasMatches);
-  const findClientDecisionOutcome = asString(findClientDecision?.outcome);
-  const createPayload = asRecord(createClientResult.result?.payload);
-  const createdClient = asRecord(createPayload?.client);
-  const createClientId = asString(createdClient?.id);
-  const bindPayload = asRecord(bindClientResult.result?.payload);
-  const link = asRecord(bindPayload?.link);
-  const bindingId = asString(link?.bindingId);
-  const clientId = asString(link?.clientId) ?? createClientId;
+  const businessStageLabel = mapSubprocessBusinessStageLabel(child);
+  const terminalPresentation = mapTerminalStagePresentation(child);
   const details: string[] = [];
+  const actionLink = {
+    label: "Открыть подпроцесс",
+    to: `/processes/${child.rootProcessId}/subprocesses/${child.processId}`,
+  };
 
   appendIfPresent(details, "Подпроцесс", child.processId);
-  appendIfPresent(details, "Client ID", clientId);
-  appendIfPresent(details, "Binding ID", bindingId);
 
-  if (findClientResult.errorMessage) {
-    details.push(`Поиск клиента: ${findClientResult.errorMessage}`);
-  }
-
-  if (createClientId) {
-    details.push("В АБС создана новая карточка клиента.");
-  }
-
-  if (bindingId) {
-    details.push("Клиент привязан к номинальному счету.");
-  }
-
-  if (findClientDecisionOutcome === "NOT_FOUND" || hasMatches === false) {
-    return {
-      summary:
-        "Клиент не найден в АБС, поэтому была создана новая карточка и выполнена привязка.",
+  if (child.status === "FAIL") {
+    appendIfPresent(details, "Этап подпроцесса", businessStageLabel);
+    appendIfPresent(
       details,
-    };
-  }
+      "Ошибка подпроцесса",
+      terminalPresentation?.label ?? child.currentStepId,
+    );
 
-  if (bindClientResult.status === "SUCCESS") {
     return {
-      summary: "Клиент найден в АБС и привязан к номинальному счету.",
+      summary: `Ошибка возникла внутри подпроцесса АБС на этапе «${businessStageLabel}».`,
       details,
+      hasSubprocess: true,
+      actionLink,
     };
   }
 
   if (isInProgressStatus(child.status)) {
+    appendIfPresent(details, "Этап подпроцесса", businessStageLabel);
+
     return {
-      summary: "Выполняем операции в АБС: поиск, создание карточки и привязку.",
+      summary: `Подпроцесс АБС выполняется на этапе «${businessStageLabel}».`,
       details,
+      hasSubprocess: true,
+      actionLink,
     };
   }
 
   return {
-    summary: "Подпроцесс регистрации в АБС завершен.",
+    summary: "Подпроцесс АБС выполнен успешно.",
     details,
+    hasSubprocess: true,
+    actionLink,
   };
 }
 
@@ -1210,9 +1229,11 @@ function getAbsStage(
   subprocesses: WorkflowResponse[],
 ): ProcessStageItem {
   const timing = getStepTiming(steps, ROOT_ABS_STEPS);
-  const stageSteps = buildStepEvidence(workflow, steps, ROOT_ABS_STEPS);
   const outcome = getTerminalOutcome(workflow);
   const absOutcome = describeAbsOutcome(subprocesses);
+  const stageSteps = absOutcome.hasSubprocess
+    ? []
+    : buildStepEvidence(workflow, steps, ROOT_ABS_STEPS);
 
   if (
     outcome === "VALIDATION_REJECT" ||
@@ -1228,6 +1249,7 @@ function getAbsStage(
       absOutcome.details,
       timing,
       stageSteps,
+      absOutcome.actionLink,
     );
   }
 
@@ -1236,10 +1258,11 @@ function getAbsStage(
       "abs",
       "Регистрация в АБС",
       "error",
-      "Подпроцесс в АБС завершился ошибкой и требует проверки.",
+      absOutcome.summary,
       absOutcome.details,
       timing,
       stageSteps,
+      absOutcome.actionLink,
     );
   }
 
@@ -1255,6 +1278,7 @@ function getAbsStage(
       absOutcome.details,
       timing,
       stageSteps,
+      absOutcome.actionLink,
     );
   }
 
@@ -1271,6 +1295,7 @@ function getAbsStage(
       absOutcome.details,
       timing,
       stageSteps,
+      absOutcome.actionLink,
     );
   }
 
@@ -1282,6 +1307,7 @@ function getAbsStage(
     absOutcome.details,
     timing,
     stageSteps,
+    absOutcome.actionLink,
   );
 }
 

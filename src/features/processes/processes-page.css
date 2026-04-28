@@ -451,6 +451,37 @@
   color: var(--text-strong-soft);
 }
 
+.process-stage__action-link {
+  align-self: flex-start;
+  margin-left: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2rem;
+  padding: 0.35rem 0.8rem;
+  border: 0.0625rem solid rgba(29, 31, 53, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-strong-soft);
+  font-size: 0.82rem;
+  line-height: 1;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.process-stage__action-link:hover,
+.process-stage__action-link:focus-visible {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-strong);
+  box-shadow: var(--shadow-sm);
+  outline: none;
+}
+
 .process-stage__steps-disclosure {
   display: flex;
   flex-direction: column;

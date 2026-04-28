@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { cn } from "../../../shared/lib/cn";
 import { CopyableValue } from "../../../shared/ui/CopyableValue";
 import type { ProcessDetails, ProcessStageItem } from "../types";
@@ -81,6 +82,12 @@ export function ProcessStageTimeline({ process }: ProcessStageTimelineProps) {
                 </li>
               ))}
             </ul>
+          ) : null}
+
+          {stage.actionLink ? (
+            <Link className="process-stage__action-link" to={stage.actionLink.to}>
+              {stage.actionLink.label}
+            </Link>
           ) : null}
 
           {stage.steps.length > 0 ? (

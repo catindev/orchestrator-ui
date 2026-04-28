@@ -173,6 +173,10 @@ export type ProcessStageItem = {
   startedAt: string | null
   finishedAt: string | null
   steps: StepEvidenceItem[]
+  actionLink?: {
+    label: string
+    to: string
+  }
 }
 
 export const PROCESS_STATUS_LABELS = [
