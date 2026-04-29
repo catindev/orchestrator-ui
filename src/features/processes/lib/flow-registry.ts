@@ -22,12 +22,17 @@ export const ROOT_ABS_STEPS = [
   "prepare_abs_ensure_fl_resident_beneficiary_input",
   "run_abs_ensure_fl_resident_beneficiary",
   "wait_abs_ensure_fl_resident_beneficiary",
+  "extract_abs_ensure_subflow_result",
+  "choose_abs_ensure_outcome",
+  "switch_abs_ensure_outcome",
 ] as const;
 
 export const ROOT_RESULT_STEPS = [
   "finish_success",
   "finish_reject_validation",
   "finish_reject_address",
+  "finish_reject_already_bound",
+  "finish_reject_ambiguous_clients",
   "finish_fail_poc_scenario_not_supported",
   "finish_fail_address_wait_error",
   "finish_fail_abs_subflow_wait_error",
@@ -39,6 +44,7 @@ export const SUBPROCESS_FIND_STEPS = [
   "send_find_client",
   "wait_find_client",
   "extract_find_client_result",
+  "derive_client_candidates_facts",
   "choose_find_client_scenario",
   "switch_find_client_scenario",
 ] as const;
@@ -53,12 +59,18 @@ export const SUBPROCESS_BIND_STEPS = [
   "prepare_bind_client_request",
   "send_bind_client",
   "wait_bind_client",
+  "extract_bind_client_result",
+  "choose_bind_client_outcome",
+  "switch_bind_client_outcome",
+  "finish_already_bound",
   "finish_fail_bind_client_wait_error",
   "finish_fail_bind_client_wait_timeout",
 ] as const;
 
 export const SUBPROCESS_RESULT_STEPS = [
   "finish_success",
+  "finish_already_bound",
+  "finish_reject_ambiguous_clients",
   "finish_fail_create_client_wait_error",
   "finish_fail",
 ] as const;
@@ -97,6 +109,11 @@ export const STEP_LABELS: Record<string, string> = {
   run_abs_ensure_fl_resident_beneficiary: "Запуск подпроцесса работы с ABS",
   wait_abs_ensure_fl_resident_beneficiary:
     "Ожидание завершения подпроцесса ABS",
+  extract_abs_ensure_subflow_result: "Нормализация результата подпроцесса АБС",
+  choose_abs_ensure_outcome: "Выбор итогового исхода АБС",
+  switch_abs_ensure_outcome: "Маршрутизация результата АБС",
+  finish_reject_already_bound: "Бенефициар уже привязан",
+  finish_reject_ambiguous_clients: "Неоднозначный результат поиска клиента",
   finish_success: "Успешное завершение",
   finish_fail_technical: "Завершение с технической ошибкой",
   finish_fail_abs_subflow_call: "Техническая ошибка запуска подпроцесса ABS",
@@ -107,6 +124,7 @@ export const STEP_LABELS: Record<string, string> = {
   send_find_client: "Поиск клиента в ЦФТ",
   wait_find_client: "Ожидание результата поиска клиента",
   extract_find_client_result: "Нормализация результата поиска клиента",
+  derive_client_candidates_facts: "Анализ найденных карточек клиента",
   choose_find_client_scenario: "Выбор сценария по результату поиска",
   switch_find_client_scenario: "Маршрутизация по результату поиска",
   prepare_create_client_request: "Подготовка запроса создания клиента",
@@ -125,6 +143,10 @@ export const STEP_LABELS: Record<string, string> = {
   prepare_bind_client_request: "Подготовка запроса привязки клиента",
   send_bind_client: "Привязка клиента",
   wait_bind_client: "Ожидание результата привязки",
+  extract_bind_client_result: "Нормализация результата привязки",
+  choose_bind_client_outcome: "Выбор исхода привязки",
+  switch_bind_client_outcome: "Маршрутизация результата привязки",
+  finish_already_bound: "Бенефициар уже привязан",
   finish_fail_bind_client_call_error:
     "Техническая ошибка вызова привязки клиента",
   finish_fail_bind_client_wait_error:

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { cn } from '../lib/cn'
-import { normalizeOrchestratorServerUrl } from '../lib/orchestrator-server'
+import {
+  DEFAULT_ORCHESTRATOR_SERVER_URL,
+  normalizeOrchestratorServerUrl,
+} from '../lib/orchestrator-server'
 import { useOrchestratorServer } from '../lib/use-orchestrator-server'
 
 export function OrchestratorServerControl() {
@@ -73,7 +76,7 @@ export function OrchestratorServerControl() {
               }
             }}
             onKeyDown={handleKeyDown}
-            placeholder="http://localhost:8080"
+            placeholder={DEFAULT_ORCHESTRATOR_SERVER_URL}
             aria-label="Сервер заявок"
           />
         </label>

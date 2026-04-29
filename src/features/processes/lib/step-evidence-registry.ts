@@ -114,6 +114,22 @@ const STEP_EVIDENCE: Record<string, EvidenceExtractor> = {
       data: getWaitResult(workflow, 'run_abs_ensure_fl_resident_beneficiary'),
     },
   }),
+  extract_abs_ensure_subflow_result: (workflow) => ({
+    facts: {
+      title: 'Результат подпроцесса АБС',
+      data: getFacts(workflow)?.abs_ensure_subflow_result,
+    },
+    response: {
+      title: 'Raw-результат подпроцесса',
+      data: getWaitResult(workflow, 'run_abs_ensure_fl_resident_beneficiary'),
+    },
+  }),
+  choose_abs_ensure_outcome: (workflow) => ({
+    decision: {
+      title: 'Итоговое решение по результату АБС',
+      data: asRecord(getDecisions(workflow)?.abs_ensure_outcome),
+    },
+  }),
   prepare_find_client_request: (workflow) => ({
     request: {
       title: 'Подготовленный запрос',
@@ -140,6 +156,12 @@ const STEP_EVIDENCE: Record<string, EvidenceExtractor> = {
     facts: {
       title: 'Нормализованный результат поиска',
       data: getFacts(workflow)?.find_client_result,
+    },
+  }),
+  derive_client_candidates_facts: (workflow) => ({
+    facts: {
+      title: 'Факты по найденным карточкам',
+      data: getFacts(workflow)?.client_candidates,
     },
   }),
   choose_find_client_scenario: (workflow) => ({
@@ -196,6 +218,22 @@ const STEP_EVIDENCE: Record<string, EvidenceExtractor> = {
     response: {
       title: 'Ответ адаптера АБС',
       data: getWaitResult(workflow, 'send_bind_client'),
+    },
+  }),
+  extract_bind_client_result: (workflow) => ({
+    facts: {
+      title: 'Нормализованный результат привязки',
+      data: getFacts(workflow)?.bind_client_result,
+    },
+    response: {
+      title: 'Ответ адаптера АБС',
+      data: getWaitResult(workflow, 'send_bind_client'),
+    },
+  }),
+  choose_bind_client_outcome: (workflow) => ({
+    decision: {
+      title: 'Принятое решение по привязке',
+      data: asRecord(getDecisions(workflow)?.bind_client_outcome),
     },
   }),
   finish_fail_bind_client_wait_error: (workflow) => ({

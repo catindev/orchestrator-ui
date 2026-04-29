@@ -33,7 +33,7 @@ cp .env.example .env
 npm run dev
 ```
 
-По умолчанию UI будет доступен на `http://localhost:5173`, а запросы к `/api` Vite проксирует в `ORCHESTRATOR_BASE_URL`.
+По умолчанию UI будет доступен на `http://localhost:5173`, а сервер заявок в режиме `npm run dev` будет `http://localhost:8080`. Для остальных окружений default-сервер заявок — `https://j-nominal-beneficiaries.preprod.transcapital.com`. Значение можно переопределить через `ORCHESTRATOR_BASE_URL` или через контрол `Сервер заявок` в UI.
 
 ## Production build
 
@@ -54,10 +54,10 @@ docker build -t orchestrator-ui:local .
 Запустить контейнер:
 
 ```bash
-docker run --rm -p 8080:8080 -e BASE_URL=http://host.docker.internal:8080 orchestrator-ui:local
+docker run --rm -p 8080:8080 -e BASE_URL=https://j-nominal-beneficiaries.preprod.transcapital.com orchestrator-ui:local
 ```
 
-Контейнер отдает UI на `http://localhost:8080`, а `/api` проксирует в `BASE_URL`.
+Контейнер отдает UI на `http://localhost:8080`, а `/api` проксирует в `BASE_URL`. Если `BASE_URL` не переопределен, в UI default-сервером заявок остается preprod-контур.
 
 Важно:
 

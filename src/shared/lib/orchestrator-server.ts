@@ -1,4 +1,5 @@
-const DEFAULT_ORCHESTRATOR_SERVER_URL = 'http://localhost:8080'
+export const DEFAULT_ORCHESTRATOR_SERVER_URL =
+  'https://j-nominal-beneficiaries.preprod.transcapital.com'
 const ORCHESTRATOR_SERVER_STORAGE_KEY = 'orchestrator-server-url'
 
 function hasProtocol(value: string) {
