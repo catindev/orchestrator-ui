@@ -202,6 +202,14 @@ function getTerminalOutcome(workflow: WorkflowResponse): string | null {
   return asString(asRecord(workflow.result)?.outcome);
 }
 
+function getDecisionOutcome(decision: Record<string, unknown> | null): string | null {
+  return asString(decision?.outcome) ?? asString(decision?.decision);
+}
+
+function isManagedAbsBusinessOutcome(outcome: string | null): boolean {
+  return outcome === "ALREADY_BOUND" || outcome === "AMBIGUOUS_CLIENTS_REJECT";
+}
+
 function getValidationIssues(
   workflow: WorkflowResponse,
 ): Record<string, unknown>[] {
@@ -371,6 +379,20 @@ function mapTerminalStagePresentation(
       return {
         label: "Отклонена проверкой адреса",
         summary: "Адрес бенефициара не прошел проверку или не был подтвержден.",
+      };
+    case "ALREADY_BOUND":
+      return {
+        label: "Бенефициар уже привязан",
+        summary:
+          message ??
+          "Бенефициар уже привязан к указанному номинальному счёту.",
+      };
+    case "AMBIGUOUS_CLIENTS_REJECT":
+      return {
+        label: "Неоднозначный результат поиска клиента",
+        summary:
+          message ??
+          "В АБС найдено несколько карточек, и безопасно выбрать одну из них невозможно.",
       };
     case "TECHNICAL_FAILURE":
       // presentation depends on currentStepId at failure time, not on outcome variant
@@ -1215,6 +1237,22 @@ function describeAbsOutcome(subprocesses: WorkflowResponse[]): {
     };
   }
 
+  const childOutcome = getTerminalOutcome(child);
+
+  if (isManagedAbsBusinessOutcome(childOutcome)) {
+    appendIfPresent(details, "Этап подпроцесса", businessStageLabel);
+    appendIfPresent(details, "Outcome", childOutcome);
+
+    return {
+      summary:
+        terminalPresentation?.summary ??
+        "Подпроцесс АБС завершился управляемым бизнес-исходом.",
+      details,
+      hasSubprocess: true,
+      actionLink,
+    };
+  }
+
   return {
     summary: "Подпроцесс АБС выполнен успешно.",
     details,
@@ -1246,6 +1284,19 @@ function getAbsStage(
       "Регистрация в АБС",
       "skipped",
       "До операций в АБС процесс не дошел и завершился раньше.",
+      absOutcome.details,
+      timing,
+      stageSteps,
+      absOutcome.actionLink,
+    );
+  }
+
+  if (isManagedAbsBusinessOutcome(outcome)) {
+    return buildStage(
+      "abs",
+      "Регистрация в АБС",
+      "error",
+      absOutcome.summary,
       absOutcome.details,
       timing,
       stageSteps,
@@ -1365,14 +1416,34 @@ function getFindClientStage(
   const timing = getStepTiming(steps, SUBPROCESS_FIND_STEPS);
   const stageSteps = buildStepEvidence(workflow, steps, SUBPROCESS_FIND_STEPS);
   const findResult = getEffectResult(workflow, "send_find_client");
-  const findFacts = asRecord(asRecord(workflow.context?.facts)?.find_client_result);
-  const decision = asRecord(asRecord(workflow.context?.decisions)?.find_client_scenario);
-  const hasMatches = asBoolean(findFacts?.hasMatches);
-  const decisionOutcome = asString(decision?.outcome);
+  const candidateFacts = asRecord(
+    asRecord(workflow.context?.facts)?.client_candidates,
+  );
+  const decision = asRecord(
+    asRecord(workflow.context?.decisions)?.find_client_scenario,
+  );
+  const hasMatches = asBoolean(candidateFacts?.hasMatches);
+  const decisionOutcome = getDecisionOutcome(decision);
+  const ownServiceClientCount = candidateFacts?.ownServiceClientCount;
+  const clientMatchCount = candidateFacts?.clientMatchCount;
   const details: string[] = [];
 
   appendIfPresent(details, "Request ID", findResult.requestId);
   appendIfPresent(details, "Статус ответа", findResult.status);
+  appendIfPresent(
+    details,
+    "Найдено карточек",
+    typeof clientMatchCount === "number"
+      ? String(clientMatchCount)
+      : asString(clientMatchCount),
+  );
+  appendIfPresent(
+    details,
+    "Карточек сервиса",
+    typeof ownServiceClientCount === "number"
+      ? String(ownServiceClientCount)
+      : asString(ownServiceClientCount),
+  );
 
   if (findResult.errorMessage) {
     details.push(findResult.errorMessage);
@@ -1387,6 +1458,42 @@ function getFindClientStage(
       "Поиск клиента",
       "active",
       "Ищем клиента в АБС и определяем, нужен ли сценарий создания.",
+      details,
+      timing,
+      stageSteps,
+    );
+  }
+
+  if (decisionOutcome === "AMBIGUOUS_CLIENTS_REJECT") {
+    return buildStage(
+      "find_client",
+      "Поиск клиента",
+      "error",
+      "В АБС найдено несколько карточек, и безопасно выбрать одну из них невозможно.",
+      details,
+      timing,
+      stageSteps,
+    );
+  }
+
+  if (decisionOutcome === "FOUND_OWN_SERVICE") {
+    return buildStage(
+      "find_client",
+      "Поиск клиента",
+      "completed",
+      "В АБС найдена карточка, ранее созданная сервисом номинальных бенефициаров. Используем её для привязки.",
+      details,
+      timing,
+      stageSteps,
+    );
+  }
+
+  if (decisionOutcome === "CREATE_OWN_CLIENT") {
+    return buildStage(
+      "find_client",
+      "Поиск клиента",
+      "completed",
+      "В АБС найдены карточки клиента, но среди них нет карточки, созданной сервисом номинальных бенефициаров. Будет создана новая карточка для текущего продукта.",
       details,
       timing,
       stageSteps,
@@ -1520,14 +1627,21 @@ function getBindClientStage(
   const stageSteps = buildStepEvidence(workflow, steps, SUBPROCESS_BIND_STEPS);
   const bindResult = getEffectResult(workflow, "send_bind_client");
   const bindPayload = asRecord(bindResult.result?.payload);
+  const bindFacts = asRecord(asRecord(workflow.context?.facts)?.bind_client_result);
+  const bindDecision = asRecord(
+    asRecord(workflow.context?.decisions)?.bind_client_outcome,
+  );
   const link = asRecord(bindPayload?.link);
   const clientId = asString(link?.clientId);
   const bindingId = asString(link?.bindingId);
+  const bindOutcome = getDecisionOutcome(bindDecision);
+  const isAlreadyBound = asBoolean(bindFacts?.isAlreadyBound);
   const details: string[] = [];
 
   appendIfPresent(details, "Request ID", bindResult.requestId);
   appendIfPresent(details, "Client ID", clientId);
   appendIfPresent(details, "Binding ID", bindingId);
+  appendIfPresent(details, "Outcome", bindOutcome);
 
   if (
     isCurrentStep(workflow, SUBPROCESS_BIND_STEPS) &&
@@ -1538,6 +1652,18 @@ function getBindClientStage(
       "Привязка клиента",
       "active",
       "Привязываем клиента к номинальному счету.",
+      details,
+      timing,
+      stageSteps,
+    );
+  }
+
+  if (bindOutcome === "ALREADY_BOUND" || isAlreadyBound) {
+    return buildStage(
+      "bind_client",
+      "Привязка клиента",
+      "error",
+      "АБС сообщает, что бенефициар уже привязан к указанному номинальному счёту.",
       details,
       timing,
       stageSteps,
@@ -1609,7 +1735,7 @@ function getSubprocessResultStage(
     return buildStage(
       "result",
       "Итог подпроцесса",
-      "completed",
+      isManagedAbsBusinessOutcome(outcome) ? "error" : "completed",
       terminalStage?.summary ?? "Подпроцесс завершен успешно.",
       details,
       timing,

@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: orchestrator-ui-config
 data:
-  BASE_URL: http://orchestration-backend:8080
+  BASE_URL: https://j-nominal-beneficiaries.preprod.transcapital.com
